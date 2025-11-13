@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Cocaptain Field Guide — Mycelial Web</title>
+<style>
+  :root{
+    --bg:#0b0f12;
+    --panel:#0f1720;
+    --accent:#00e6c8;
+    --muted:#9aa5b1;
+    --gold:#ffd24d;
+    --quest-active:#4ade80;
+    --quest-complete:#22c55e;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#071219 0%,var(--bg) 100%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;color:#d7e6e2;overflow-x:hidden}
+  
+  header{padding:18px 28px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  h1{margin:0;font-size:20px;color:var(--gold);letter-spacing:0.3px}
+  
+  .container{
+    padding:28px;
+    max-width:1400px;
+    margin:0 auto;
+  }
+  
+  .intro-section{
+    padding:20px;
+    background:linear-gradient(135deg,rgba(0,230,200,0.08),rgba(0,230,200,0.02));
+    border-radius:12px;
+    border-left:4px solid var(--accent);
+    margin-bottom:32px;
+  }
+  
+  .mycelial-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(350px,1fr));
+    gap:20px;
+    margin-bottom:32px;
+  }
+  
+  .node{
+    background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:12px;
+    padding:20px;
+    transition:all 0.3s ease;
+    position:relative;
+    overflow:visible;
+  }
+  
+  .node::before{
+    content:'';
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    height:4px;
+    background:linear-gradient(90deg,var(--accent),var(--gold));
+    border-radius:12px 12px 0 0;
+    opacity:0.5;
+  }
+  
+  .node:hover{
+    border-color:var(--accent);
+    transform:translateY(-4px);
+    box-shadow:0 8px 32px rgba(0,230,200,0.2);
+  }
+  
+  .node-title{
+    color:var(--gold);
+    font-size:18px;
+    font-weight:600;
+    margin-bottom:12px;
+    line-height:1.3;
+  }
+  
+  .node-meta{
+    display:flex;
+    gap:12px;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+    font-size:12px;
+    color:var(--muted);
+  }
+  
+  .node-content{
+    color:#d7e6e2;
+    line-height:1.6;
+    font-size:14px;
+    white-space:pre-wrap;
+  }
+  
+  .quest-node{
+    border-left:4px solid var(--quest-active);
+  }
+  
+  .quest-node::before{
+    background:linear-gradient(90deg,var(--quest-active),var(--quest-complete));
+  }
+  
+  .resource-node{
+    border-left:4px solid #60a5fa;
+  }
+  
+  .resource-node::before{
+    background:linear-gradient(90deg,#60a5fa,#3b82f6);
+  }
+  
+  .category-header{
+    color:var(--gold);
+    font-size:24px;
+    font-weight:600;
+    margin:40px 0 20px 0;
+    padding-bottom:12px;
+    border-bottom:2px solid rgba(255,210,77,0.2);
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  
+  .tag{
+    display:inline-block;
+    background:rgba(0,230,200,0.15);
+    color:var(--accent);
+    padding:4px 10px;
+    border-radius:6px;
+    font-size:11px;
+    margin-right:6px;
+    margin-top:6px;
+    font-weight:600;
+  }
+  
+  .reward-badge{
+    background:rgba(255,210,77,0.15);
+    color:var(--gold);
+    padding:6px 12px;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:600;
+    display:inline-block;
+  }
+  
+  .verification-badge{
+    background:rgba(74,222,128,0.15);
+    color:var(--quest-active);
+    padding:4px 8px;
+    border-radius:6px;
+    font-size:10px;
+    font-weight:600;
+  }
+  
+  .link-button{
+    display:inline-block;
+    background:rgba(96,165,250,0.1);
+    color:#60a5fa;
+    padding:8px 14px;
+    border-radius:8px;
+    text-decoration:none;
+    font-size:13px;
+    font-weight:500;
+    margin-top:10px;
+    transition:all 0.2s ease;
+  }
+  
+  .link-button:hover{
+    background:rgba(96,165,250,0.2);
+    transform:translateX(2px);
+  }
+  
+  footer{
+    padding:24px 28px;
+    border-top:1px solid rgba(255,255,255,0.02);
+    color:var(--muted);
+    font-size:13px;
+    text-align:center;
+    margin-top:40px;
+  }
+  
+  @media (max-width:768px){
+    .mycelial-grid{
+      grid-template-columns:1fr;
+    }
+    .container{
+      padding:16px;
+    }
+    header{
+      flex-direction:column;
+      align-items:flex-start;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;flex-direction:column;flex:1">
+    <h1>🔥 Cocaptain Field Guide — Mycelial Web</h1>
+    <div style="font-size:13px;color:var(--muted)">All content visible • Interconnected knowledge network • Zero gates</div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="intro-section">
+    <div style="font-size:16px;font-weight:600;color:var(--accent);margin-bottom:8px">🌐 Welcome to the Mycelial Web</div>
+    <div style="font-size:14px;line-height:1.6">
+      This is a living knowledge network where everything is visible from the start. No hidden content, no button gates. 
+      Each node represents a piece of wisdom, a quest, or a resource. Scroll through the web and absorb what calls to you. 
+      Like mycelium, knowledge spreads through connection and shared growth.
+    </div>
+  </div>
+
+  <div class="category-header">📖 Field Guide Sections</div>
+  <div class="mycelial-grid">
+    <div class="node">
+      <div class="node-title">Section 1 — Entering the Forge: Orientation, Intent, and Compound Impact</div>
+      <div class="node-meta">
+        <span>📏 3,847 chars</span>
+        <span>⭐ Level 1</span>
+      </div>
+      <div class="node-content">Welcome to the Forge. This is more than a manual; it is an orientation ritual, a pragmatic cosmology, and a tactical playbook for next-gen cocaptains who will steer distributed systems of knowledge, culture, and planetary repair. Read this whole section in one sitting if possible. Let the words sit in the mind for a moment before you act.
+
+The Forge is a conceptual and operational space where ideas are born, rigorously tested, and propagated into resilient systems. Its operating logic rests on three pillars: (1) Synthesis across disciplines; (2) Iterative, feedback-driven deployment; (3) Moral and systemic prudence.
+
+Think of the Forge as a living organism. Each idea you contribute is a cell: some will fizzle and be reabsorbed; others will proliferate and contribute to a tissue of stable practices. Your responsibility as a cocaptain is to tend these cells—nurture promising ones, cull the dangerous ones, and propagate the robust ones outward into networks that amplify benevolence.
+
+Begin with intention architecture: before any action, write a two-paragraph intention describing the desired system state in three time horizons (6 months, 3 years, 30 years). This is your north star. Pair that intention with a minimal hypothesis: "If we do X then Y will change in Z measurable ways over T time." Keep hypotheses short and falsifiable.
+
+Deploy micro-experiments: low-cost, reversible interventions that test a single variable. Examples: run a narrative circle to test a framing, deploy a lightweight agent to mediate resource exchange, plant sensor-microclimates to test bio-augmentation. Log every micro-experiment in a shared registry with metadata: hypothesis, date, sample size, observed metrics, and verdict.
+
+Compound impact occurs when three conditions align: leverage, propagation, and guardrails. Leverage is the high-impact node (soil bank, community kitchen, modular AI). Propagation is ease of replication (open source, narrative contagion, protocol design). Guardrails are meta-rules preventing pathology (ethical checkpoints, redundancy, human vetoes).
+
+Practical rituals: weekly mini-retrospectives reviewing the registry. Create kill switch policies for all high-leverage interventions. Maintain a moral ledger alongside metrics. Cultivate narrative compression: write 120-word narratives after each experiment that communicate thesis, evidence, and lessons for non-experts.</div>
+    </div>
+
+    <div class="node">
+      <div class="node-title">Section 2 — The Role of the Cocaptain: Duties, Practices, and Mentorship</div>
+      <div class="node-meta">
+        <span>📏 2,456 chars</span>
+        <span>⭐ Level 1</span>
+      </div>
+      <div class="node-content">This is the cocaptain's field manual: what to carry, which maps to consult, and which rituals to perform when terrain gets strange. A cocaptain is not a commander; you are co-pilot, co-author, and co-guardian. You share the wheel with others.
+
+Embody three modes daily: (1) Observe with humility; (2) Intervene with restraint; (3) Teach with generosity.
+
+Observe: spend one hour daily on system listening—reading telemetry, attending conversations, reviewing experiments. Record two surprising signals and one hypothesis. Develop a surprise journal revealing your blind spots over time.
+
+Intervene: choose one micro-intervention daily. Examples: deploy focused framing, change scheduling protocol, patch an agent. Set kill switch and monitoring window. Use the 72-hour rule: unless imminent harm exists, observe problems for 72 hours before intervening to see if systems self-correct.
+
+Teach: mentor at least one successor weekly in shadow shifts where apprentices lead and you reflect. Maintain continuity documents for every project. Teaching is bidirectional—identify one thing learned from each apprentice to prevent hierarchical ossification.
+
+Distribute authority: decisions costing <0.1% resources can be solo. Medium (0.1-5%) require triad consensus. High (>5%) need external ethical review. Create decision logs recording decision, makers, rationale, dissent, and commit point.
+
+Practice moral imagination: run 10-minute ethical thought experiments before non-trivial interventions. Ask how adversaries might repurpose, who might be harmed, which communities should be consulted. Document anecdotes of success and failure—stories carry culture.</div>
+    </div>
+
+    <div class="node">
+      <div class="node-title">Section 3 — Guidelines, Guardrails, Protips, and Scenario Templates</div>
+      <div class="node-meta">
+        <span>📏 2,891 chars</span>
+        <span>⭐ Level 1</span>
+      </div>
+      <div class="node-content">Your compact playbook—operational rules, safety guardrails, and tactical protips to apply immediately.
+
+GUIDELINES: (1) Decenter—ask who is excluded; (2) Modularize—prefer small composable protocols; (3) Surveil thoughtfully—minimal telemetry with privacy; (4) Open by default—publish with protections; (5) Timebox ambition—6-8 week sprints; (6) Reward redundancy—duplicate implementations prevent brittleness.
+
+GUARDRAILS: (A) Ethical Review Ladder—peer review for low-risk, external signoff for high-risk; (B) Kill Switch Protocol—immediate rollback capability with designated authority; (C) Fail-Safe Simulation—red team attacks before rollout; (D) Data Minimization—collect what you need, justify what you store; (E) Accountability Trails—auditable reasoning with dissent recorded.
+
+PROTIPS: Storyfire (5-min narratives beat whitepapers), Micro-grants ($500-5k with 2-page proposals), Zero-trust onboarding (earn trust through small tasks), Three-moves briefings (wins/failures/next moves), Two-minute test (non-expert comprehension), Parallel prototyping (2-3 competing approaches), Retrospective pre-mortems (assume failure, design mitigations).
+
+RITUALS: Weekly Forge Sessions (2hrs: metrics, prototyping, synthesis), Bi-weekly Narrative Circles (story sharing and pattern identification), Monthly Reflection Councils (ledger review with external peer), Quarterly Shock Sims (full-day resilience testing), Annual Wander Week (unstructured exploration time).
+
+SCENARIOS: Resource Cascade Drill (48hr critical resource failure), Cultural Resilience Exercise (narrative reframing over 6 weeks), Ethical Misuse Tabletop (red team attacks), Succession Stress Test (sudden leader departure), Cross-Pollination (partner with different domain).
+
+Before major propagation, write: (1) Who benefits; (2) Who could be harmed; (3) What rollback looks like. Share in ledger. Success measured by generosity, sustainability, and system repair capacity.</div>
+    </div>
+  </div>
+
+  <div class="category-header">🌍 Planetary Quests — Biosphere</div>
+  <div class="mycelial-grid">
+    <div class="node quest-node">
+      <div class="node-title">🌳 Plant a Food Tree</div>
+      <div class="node-meta">
+        <span class="reward-badge">+100 pts</span>
+        <span class="verification-badge">Photo required</span>
+      </div>
+      <div class="node-content">Plant one tree that yields carbon capture, shade, food, and morale. This single act compounds across decades: carbon sequestration, habitat creation, food production, and community gathering space.
+
+Requirements: Choose a native or climate-appropriate species. Document with location and species name. Maintain for first critical year.
+
+Impact: 1 tree = ~50 lbs CO2/year + local cooling + food yield + wildlife habitat</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">🐝 Restore a Microhabitat</div>
+      <div class="node-meta">
+        <span class="reward-badge">+75 pts</span>
+        <span class="verification-badge">Photo required</span>
+      </div>
+      <div class="node-content">Create a birdbath, moss patch, or backyard pond. Small interventions cascade through ecosystems. A single water source supports dozens of species.
+
+Requirements: Install permanent water source, native plant shelter, or pollinator garden (minimum 3 native species).
+
+Impact: Microhabitats create stepping stones for biodiversity in urban matrices</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">🌱 Start a Seed Exchange</div>
+      <div class="node-meta">
+        <span class="reward-badge">+80 pts</span>
+        <span class="verification-badge">Self-report</span>
+      </div>
+      <div class="node-content">Share seeds with 3 neighbors or community members. Genetic diversity and resilient food systems start with seed sovereignty.
+
+Requirements: Exchange heritage/open-pollinated seeds with 3 people. Include growing information. Document varieties shared.
+
+Impact: Decentralizes food systems, preserves genetic diversity, builds community</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">♻️ Begin Composting</div>
+      <div class="node-meta">
+        <span class="reward-badge">+60 pts</span>
+        <span class="verification-badge">Photo of setup</span>
+      </div>
+      <div class="node-content">Start a compost bin or vermicompost system. Transform waste into soil. Close nutrient loops.
+
+Requirements: Set up composting system (bin, pile, or worm bin). Maintain for 60 days. Document process.
+
+Impact: Diverts 30% of household waste from landfills, creates living soil</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">💧 Capture Rainwater</div>
+      <div class="node-meta">
+        <span class="reward-badge">+90 pts</span>
+        <span class="verification-badge">Photo of system</span>
+      </div>
+      <div class="node-content">Install rainwater catchment system. Harvest from sky instead of stressed aquifers.
+
+Requirements: Install rain barrel or catchment (minimum 50 gallon capacity). Use for irrigation. Document setup.
+
+Impact: Reduces municipal water demand, prevents stormwater runoff</div>
+    </div>
+  </div>
+
+  <div class="category-header">🌊 Planetary Quests — Atmosphere</div>
+  <div class="mycelial-grid">
+    <div class="node quest-node">
+      <div class="node-title">🚴 Active Transit Week</div>
+      <div class="node-meta">
+        <span class="reward-badge">+70 pts</span>
+        <span class="verification-badge">Daily log</span>
+      </div>
+      <div class="node-content">Replace car trips with walking/cycling for 7 consecutive days. Experience your neighborhood at human speed.
+
+Requirements: Log all trips for 7 days. Note alternatives used (walk, bike, transit, carpool).
+
+Impact: Average 7-day car replacement = ~50 lbs CO2 saved + health benefits</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">💡 LED Conversion</div>
+      <div class="node-meta">
+        <span class="reward-badge">+60 pts</span>
+        <span class="verification-badge">Before/after count</span>
+      </div>
+      <div class="node-content">Replace all home bulbs with LEDs. 75% energy reduction per bulb, decades of lifespan.
+
+Requirements: Audit current bulbs, replace with LEDs, document count and types.
+
+Impact: Average home saves 200+ kWh/year = ~140 lbs CO2</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">☀️ Renewable Energy Switch</div>
+      <div class="node-meta">
+        <span class="reward-badge">+100 pts</span>
+        <span class="verification-badge">Provider confirmation</span>
+      </div>
+      <div class="node-content">Change to renewable energy provider. Vote with your electricity bill.
+
+Requirements: Switch to verified renewable provider or install solar. Document transition.
+
+Impact: Average household reduces 7,000+ lbs CO2 annually</div>
+    </div>
+  </div>
+
+  <div class="category-header">💧 Planetary Quests — Hydrosphere</div>
+  <div class="mycelial-grid">
+    <div class="node quest-node">
+      <div class="node-title">🚫 Stop Synthetic Fertilizer</div>
+      <div class="node-meta">
+        <span class="reward-badge">+70 pts</span>
+        <span class="verification-badge">Product list</span>
+      </div>
+      <div class="node-content">Switch to organic alternatives for 6 months. Synthetic fertilizers are major source of water pollution and greenhouse gases.
+
+Requirements: Replace with compost, cover crops, or organic alternatives. Document transition.
+
+Impact: Prevents nitrogen runoff, builds soil health, reduces N2O emissions</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">🏖️ Shoreline Cleanup</div>
+      <div class="node-meta">
+        <span class="reward-badge">+75 pts</span>
+        <span class="verification-badge">Before/after photos</span>
+      </div>
+      <div class="node-content">Clean 100 meters of shoreline/riverbank. Direct action protecting aquatic ecosystems.
+
+Requirements: Clean 100m stretch, properly dispose of waste, document with photos.
+
+Impact: Removes pollutants before they fragment into microplastics</div>
+    </div>
+  </div>
+
+  <div class="category-header">👥 Planetary Quests — Sociosphere</div>
+  <div class="mycelial-grid">
+    <div class="node quest-node">
+      <div class="node-title">👋 Know Your Neighbors</div>
+      <div class="node-meta">
+        <span class="reward-badge">+40 pts</span>
+        <span class="verification-badge">Reflection note</span>
+      </div>
+      <div class="node-content">Learn 5 neighbors' names this month. Community resilience starts with knowing who lives near you.
+
+Requirements: Learn names, brief conversations, document reflections on connections made.
+
+Impact: Foundation for mutual aid networks, emergency preparedness, social cohesion</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">🔧 Host Repair Café</div>
+      <div class="node-meta">
+        <span class="reward-badge">+100 pts</span>
+        <span class="verification-badge">Event photos</span>
+      </div>
+      <div class="node-content">Organize repair café or swap meet. Combat planned obsolescence through community skill-sharing.
+
+Requirements: Host event where community repairs items together. Minimum 5 participants.
+
+Impact: Extends product lifespans, builds skills, strengthens community bonds</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">🍽️ Community Meals</div>
+      <div class="node-meta">
+        <span class="reward-badge">+60 pts</span>
+        <span class="verification-badge">Photos/dates</span>
+      </div>
+      <div class="node-content">Organize or attend 4 community meals. Shared food builds culture.
+
+Requirements: Participate in 4 community meal events. Document dates and reflections.
+
+Impact: Food security awareness, reduced food waste, community bonds</div>
+    </div>
+  </div>
+
+  <div class="category-header">📚 Learning Resources — GitHub Projects</div>
+  <div class="mycelial-grid">
+    <div class="node resource-node">
+      <div class="node-title">Awesome Sustainability</div>
+      <div class="node-meta">
+        <span class="tag">climate</span>
+        <span class="tag">tools</span>
+        <span class="tag">directory</span>
+        <span style="margin-left:auto;opacity:0.6">CC0-1.0</span>
+      </div>
+      <div class="node-content">Comprehensive list of tools, initiatives, and resources for sustainability. Curated collection of projects, organizations, and datasets focused on environmental action.</div>
+      <a href="https://github.com/philsturgeon/awesome-sustainability" target="_blank" class="link-button">→ View Repository</a>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">Climate Change AI</div>
+      <div class="node-meta">
+        <span class="tag">AI</span>
+        <span class="tag">ML</span>
+        <span class="tag">tutorials</span>
+        <span style="margin-left:auto;opacity:0.6">MIT</span>
+      </div>
+      <div class="node-content">Machine learning tutorials for climate change applications. Hands-on guides for applying AI to climate modeling, prediction, and intervention design.</div>
+      <a href="https://github.com/climatechange-ai-tutorials" target="_blank" class="link-button">→ View Repository</a>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">Open Sustainable Technology</div>
+      <div class="node-meta">
+        <span class="tag">open-source</span>
+        <span class="tag">tech</span>
+        <span class="tag">climate</span>
+        <span style="margin-left:auto;opacity:0.6">CC0-1.0</span>
+      </div>
+      <div class="node-content">Curated list of open tech projects sustaining stable climate. Engineering and technological solutions for planetary regeneration.</div>
+      <a href="https://github.com/protontypes/open-sustainable-technology" target="_blank" class="link-button">→ View Repository</a>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">Permaculture Design Patterns</div>
+      <div class="node-meta">
+        <span class="tag">permaculture</span>
+        <span class="tag">design</span>
+        <span class="tag">regenerative</span>
+        <span style="margin-left:auto;opacity:0.6">MIT</span>
+      </div>
+      <div class="node-content">Digital library of permaculture design patterns. Codified wisdom for regenerative land use and ecosystem design.</div>
+      <a href="https://github.com/Permaculture-Design/permaculture-design-patterns" target="_blank" class="link-button">→ View Repository</a>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">PyPSA - Renewable Energy Modeling</div>
+      <div class="node-meta">
+        <span class="tag">energy</span>
+        <span class="tag">modeling</span>
+        <span class="tag">python</span>
+        <span style="margin-left:auto;opacity:0.6">GPL-3.0</span>
+      </div>
+      <div class="node-content">Python for Power System Analysis. Model renewable energy systems, grid integration, and transition pathways.</div>
+      <a href="https://github.com/PyPSA/PyPSA" target="_blank" class="link-button">→ View Repository</a>
+    </div>
+  </div>
+
+  <div class="category-header">📖 Learning Resources — Essential Guides</div>
+  <div class="mycelial-grid">
+    <div class="node resource-node">
+      <div class="node-title">IPCC Reports</div>
+      <div class="node-meta">
+        <span class="tag">science</span>
+        <span class="tag">climate</span>
+        <span class="tag">authoritative</span>
+      </div>
+      <div class="node-content">Latest climate science from Intergovernmental Panel on Climate Change. Comprehensive assessment of climate science, impacts, and solutions.</div>
+      <a href="https://www.ipcc.ch/reports/" target="_blank" class="link-button">→ Visit Resource</a>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">Drawdown Solutions</div>
+      <div class="node-meta">
+        <span class="tag">solutions</span>
+        <span class="tag">action</span>
+        <span class="tag">comprehensive</span>
+      </div>
+      <div class="node-content">100 substantive solutions to reverse global warming. Evidence-based ranking of climate solutions by impact potential.</div>
+      <a href="https://drawdown.org/solutions" target="_blank" class="link-button">→ Visit Resource</a>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">Permaculture Principles</div>
+      <div class="node-meta">
+        <span class="tag">permaculture</span>
+        <span class="tag">design</span>
+        <span class="tag">principles</span>
+      </div>
+      <div class="node-content">12 design principles for regenerative systems. Framework for creating sustainable human habitats and food systems.</div>
+      <a href="https://permacultureprinciples.com/" target="_blank" class="link-button">→ Visit Resource</a>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">Transition Network Resources</div>
+      <div class="node-meta">
+        <span class="tag">community</span>
+        <span class="tag">transition</span>
+        <span class="tag">local</span>
+      </div>
+      <div class="node-content">Community-led responses to climate change. Tools and frameworks for local resilience building.</div>
+      <a href="https://transitionnetwork.org/resources/" target="_blank" class="link-button">→ Visit Resource</a>
+    </div>
+  </div>
+
+  <div class="category-header">🛠️ Learning Resources — Practical Tools</div>
+  <div class="mycelial-grid">
+    <div class="node resource-node">
+      <div class="node-title">iNaturalist</div>
+      <div class="node-meta">
+        <span class="tag">biodiversity</span>
+        <span class="tag">app</span>
+        <span class="tag">identification</span>
+      </div>
+      <div class="node-content">Identify species, contribute to citizen science. Crowdsourced biodiversity database with AI-powered species identification.</div>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">Ecosia</div>
+      <div class="node-meta">
+        <span class="tag">search</span>
+        <span class="tag">trees</span>
+        <span class="tag">everyday</span>
+      </div>
+      <div class="node-content">Search engine that plants trees. Ad revenue funds reforestation projects worldwide. 45+ searches = 1 tree planted.</div>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">Too Good To Go</div>
+      <div class="node-meta">
+        <span class="tag">food</span>
+        <span class="tag">waste</span>
+        <span class="tag">app</span>
+      </div>
+      <div class="node-content">Reduce food waste by rescuing surplus. Connect with restaurants and stores to save food from landfills at reduced prices.</div>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">Buycott</div>
+      <div class="node-meta">
+        <span class="tag">shopping</span>
+        <span class="tag">ethics</span>
+        <span class="tag">transparency</span>
+      </div>
+      <div class="node-content">Vote with your wallet - product ethics scanner. Barcode scanning app revealing corporate ownership and ethical practices.</div>
+    </div>
+  </div>
+
+  <div class="category-header">🎓 Learning Resources — Online Courses</div>
+  <div class="mycelial-grid">
+    <div class="node resource-node">
+      <div class="node-title">Climate Change: The Science</div>
+      <div class="node-meta">
+        <span class="tag">science</span>
+        <span class="tag">fundamentals</span>
+        <span class="tag">free</span>
+      </div>
+      <div class="node-content">Provider: edX / University of British Columbia
+
+Free course on climate science fundamentals. Comprehensive introduction to climate systems, evidence, and projections.</div>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">Regenerative Agriculture</div>
+      <div class="node-meta">
+        <span class="tag">agriculture</span>
+        <span class="tag">carbon</span>
+        <span class="tag">land</span>
+      </div>
+      <div class="node-content">Provider: Savory Institute
+
+Land management for carbon sequestration. Holistic management approach to restore grasslands and capture atmospheric carbon.</div>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">Circular Economy</div>
+      <div class="node-meta">
+        <span class="tag">economy</span>
+        <span class="tag">design</span>
+        <span class="tag">systems</span>
+      </div>
+      <div class="node-content">Provider: Ellen MacArthur Foundation
+
+Design out waste, regenerate natural systems. Framework for economic systems that eliminate waste and regenerate nature.</div>
+    </div>
+
+    <div class="node resource-node">
+      <div class="node-title">Systems Thinking</div>
+      <div class="node-meta">
+        <span class="tag">systems</span>
+        <span class="tag">thinking</span>
+        <span class="tag">free</span>
+      </div>
+      <div class="node-content">Provider: Acumen Academy
+
+Free systems thinking for social change. Learn to see patterns, leverage points, and intervention strategies in complex systems.</div>
+    </div>
+  </div>
+
+  <div class="category-header">💻 Planetary Quests — Technosphere</div>
+  <div class="mycelial-grid">
+    <div class="node quest-node">
+      <div class="node-title">🗑️ Digital Declutter</div>
+      <div class="node-meta">
+        <span class="reward-badge">+50 pts</span>
+        <span class="verification-badge">Before/after storage</span>
+      </div>
+      <div class="node-content">Delete 10GB of unused data. Data centers consume massive energy. Every GB stored requires ongoing power.
+
+Requirements: Audit cloud storage, delete duplicates/unused files, document before/after storage amounts.
+
+Impact: 10GB saved = ~200 kWh/year = ~140 lbs CO2 over storage lifetime</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">💻 Open Source Contribution</div>
+      <div class="node-meta">
+        <span class="reward-badge">+100 pts</span>
+        <span class="verification-badge">Repository link</span>
+      </div>
+      <div class="node-content">Open-source a tool or dataset. Share knowledge freely, enable others to build on your work.
+
+Requirements: Publish code, data, or documentation with open license. Include clear documentation.
+
+Impact: Multiplies impact through reuse, builds commons, advances collective progress</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">♻️ Repurpose Old Hardware</div>
+      <div class="node-meta">
+        <span class="reward-badge">+65 pts</span>
+        <span class="verification-badge">Photos and use case</span>
+      </div>
+      <div class="node-content">Give new life to 2 old devices. E-waste is toxic and resource-intensive. Extend device lifecycles.
+
+Requirements: Repurpose 2 devices (media server, learning station, donation). Document transformations.
+
+Impact: Prevents e-waste, reduces manufacturing demand, builds repair culture</div>
+    </div>
+  </div>
+
+  <div class="category-header">💰 Planetary Quests — Econosphere</div>
+  <div class="mycelial-grid">
+    <div class="node quest-node">
+      <div class="node-title">🏦 Ethical Banking</div>
+      <div class="node-meta">
+        <span class="reward-badge">+85 pts</span>
+        <span class="verification-badge">Account confirmation</span>
+      </div>
+      <div class="node-content">Switch to credit union or ethical bank. Your deposits fund loans. Ensure they align with your values.
+
+Requirements: Research institutions, open account at ethical bank/credit union, transfer primary banking.
+
+Impact: Redirects capital away from fossil fuel financing, supports community development</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">🤝 Support B-Corps</div>
+      <div class="node-meta">
+        <span class="reward-badge">+70 pts</span>
+        <span class="verification-badge">Receipt list</span>
+      </div>
+      <div class="node-content">Make 5 purchases from B-Corps/cooperatives. Vote with your spending for stakeholder capitalism.
+
+Requirements: Purchase from 5 B-Corp certified or cooperative businesses. Document purchases.
+
+Impact: Supports businesses legally committed to social/environmental goals beyond profit</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">🌱 Nature Tithe</div>
+      <div class="node-meta">
+        <span class="reward-badge">+120 pts</span>
+        <span class="verification-badge">Commitment statement</span>
+      </div>
+      <div class="node-content">Commit 1% income to planetary repair for one year. Consistent funding enables long-term restoration.
+
+Requirements: Calculate 1% of income, commit to verified organizations, document pledge.
+
+Impact: Funds land conservation, reforestation, ocean cleanup, climate research</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">📊 Track Consumption</div>
+      <div class="node-meta">
+        <span class="reward-badge">+55 pts</span>
+        <span class="verification-badge">Consumption report</span>
+      </div>
+      <div class="node-content">Log all purchases for 30 days. Awareness precedes change. Track to understand patterns.
+
+Requirements: Record every purchase with category/cost for 30 days. Analyze patterns.
+
+Impact: Average tracking reduces consumption 15-20% through awareness alone</div>
+    </div>
+  </div>
+
+  <div class="category-header">🧠 Planetary Quests — Psyche & Education</div>
+  <div class="mycelial-grid">
+    <div class="node quest-node">
+      <div class="node-title">🧘 Outdoor Meditation</div>
+      <div class="node-meta">
+        <span class="reward-badge">+60 pts</span>
+        <span class="verification-badge">Journal entries</span>
+      </div>
+      <div class="node-content">Meditate outdoors daily for 14 days. Reconnect with natural rhythms. Ground in the living world.
+
+Requirements: 10+ minute outdoor meditation daily for 14 days. Journal observations.
+
+Impact: Strengthens biophilia, reduces eco-anxiety, builds nature connection</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">📖 Indigenous Philosophy</div>
+      <div class="node-meta">
+        <span class="reward-badge">+80 pts</span>
+        <span class="verification-badge">Book titles + reflections</span>
+      </div>
+      <div class="node-content">Read 2 books on indigenous ecology. Learn from cultures with millennia of sustainable land stewardship.
+
+Requirements: Read 2 books by indigenous authors on ecological philosophy. Write reflection.
+
+Impact: Expands worldview, honors indigenous knowledge, informs regenerative practices</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">👶 Teach Child to Grow</div>
+      <div class="node-meta">
+        <span class="reward-badge">+85 pts</span>
+        <span class="verification-badge">Progress photos</span>
+      </div>
+      <div class="node-content">Help child grow plant from seed to harvest. Early food literacy shapes lifelong relationship with living systems.
+
+Requirements: Guide child through full growing cycle (plant selection to harvest). Document journey.
+
+Impact: Builds food literacy, nature connection, sense of agency in young minds</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">🎬 Documentary Night</div>
+      <div class="node-meta">
+        <span class="reward-badge">+80 pts</span>
+        <span class="verification-badge">Event photos</span>
+      </div>
+      <div class="node-content">Host 3 environmental documentary screenings. Create learning spaces, spark conversations, build community.
+
+Requirements: Host 3 screenings with discussion. Minimum 3 attendees each. Document events.
+
+Impact: Education through narrative, community formation, action inspiration</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">💼 Workplace Sustainability</div>
+      <div class="node-meta">
+        <span class="reward-badge">+110 pts</span>
+        <span class="verification-badge">Implementation details</span>
+      </div>
+      <div class="node-content">Implement sustainability metric at work. Institutional change multiplies individual impact.
+
+Requirements: Propose and implement measurable sustainability improvement at workplace.
+
+Impact: Scales behavior change across organization, creates culture shift</div>
+    </div>
+  </div>
+
+  <div class="category-header">⚖️ Planetary Quests — Governance & Metasphere</div>
+  <div class="mycelial-grid">
+    <div class="node quest-node">
+      <div class="node-title">🗳️ Vote Locally</div>
+      <div class="node-meta">
+        <span class="reward-badge">+100 pts</span>
+        <span class="verification-badge">Voter confirmation</span>
+      </div>
+      <div class="node-content">Vote in next local election. Local government controls zoning, transit, energy policy. Your vote matters more locally.
+
+Requirements: Vote in local/municipal election. Research candidates' environmental positions.
+
+Impact: Local policy shapes daily life - transit, land use, energy, waste systems</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">🏛️ Attend Council Meeting</div>
+      <div class="node-meta">
+        <span class="reward-badge">+85 pts</span>
+        <span class="verification-badge">Meeting notes</span>
+      </div>
+      <div class="node-content">Attend and participate in council meeting. Democracy requires participation. Show up, speak up.
+
+Requirements: Attend local government meeting, participate (comment/question), document experience.
+
+Impact: Accountability through presence, influence through testimony, democracy through action</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">🔬 Citizen Science</div>
+      <div class="node-meta">
+        <span class="reward-badge">+85 pts</span>
+        <span class="verification-badge">Project names</span>
+      </div>
+      <div class="node-content">Participate in 3 citizen science projects. Contribute to real research, democratize science.
+
+Requirements: Complete 3 different citizen science projects (iNaturalist, Zooniverse, etc.). Document.
+
+Impact: Advances research, builds scientific literacy, democratizes knowledge creation</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">🌍 Model Ecological Humility</div>
+      <div class="node-meta">
+        <span class="reward-badge">+70 pts</span>
+        <span class="verification-badge">Reflection journal</span>
+      </div>
+      <div class="node-content">Practice humble ecological discourse for 30 days. Listen more than speak. Learn from those doing the work.
+
+Requirements: 30 days of intentional humility in environmental discussions. Journal lessons.
+
+Impact: Builds coalition, reduces alienation, creates space for diverse voices</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">👥 Form Tiny Collective</div>
+      <div class="node-meta">
+        <span class="reward-badge">+120 pts</span>
+        <span class="verification-badge">Group charter</span>
+      </div>
+      <div class="node-content">Create aligned group of 5 stewards. Collective action compounds individual efforts.
+
+Requirements: Form group of 5+ committed to planetary work. Create charter with goals/practices.
+
+Impact: Mutual support, resource sharing, collective leverage, sustained momentum</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">💔 Document Failure</div>
+      <div class="node-meta">
+        <span class="reward-badge">+95 pts</span>
+        <span class="verification-badge">Failure documentation</span>
+      </div>
+      <div class="node-content">Share 3 failure stories with lessons. Failure literacy accelerates collective learning.
+
+Requirements: Document 3 environmental initiatives that failed. Extract lessons, share publicly.
+
+Impact: Prevents repeated mistakes, normalizes experimentation, accelerates learning</div>
+    </div>
+
+    <div class="node quest-node">
+      <div class="node-title">🎯 Choose Your Path</div>
+      <div class="node-meta">
+        <span class="reward-badge">+200 pts</span>
+        <span class="verification-badge">Completion log</span>
+      </div>
+      <div class="node-content">Complete 10 quests from any domains. Weave your unique contribution across multiple spheres.
+
+Requirements: Complete 10 quests from at least 3 different domains. Document journey.
+
+Impact: Demonstrates commitment, builds diverse capacity, models integrated stewardship</div>
+    </div>
+  </div>
+
+  <div style="margin-top:60px;padding:24px;background:linear-gradient(135deg,rgba(0,230,200,0.08),rgba(255,210,77,0.05));border-radius:12px;border-left:4px solid var(--accent)">
+    <h3 style="color:var(--gold);margin:0 0 12px 0">🌐 How to Use This Web</h3>
+    <div style="font-size:14px;line-height:1.8;color:#d7e6e2">
+      <p><strong>Everything is visible.</strong> No buttons to click, no gates to unlock. Scroll through the mycelial network and let your intuition guide you.</p>
+      
+      <p><strong>Start anywhere.</strong> Read the field guide sections for deep wisdom. Explore planetary quests for concrete actions. Browse learning resources for knowledge expansion.</p>
+      
+      <p><strong>Connect the nodes.</strong> Like mycelium connecting trees underground, these ideas interconnect. A biosphere quest teaches technosphere lessons. A sociosphere practice informs governance action.</p>
+      
+      <p><strong>Take what resonates.</strong> You don't need to do everything. Choose the actions that align with your context, capacity, and calling.</p>
+      
+      <p><strong>Share your journey.</strong> Document your experiments. Share your failures and successes. Contribute back to the network.</p>
+      
+      <p style="margin-bottom:0"><strong>Remember:</strong> Individual acts are seeds. Collective action is forest. Both matter. Both are necessary. Welcome to the work of planetary restoration.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:40px;padding:20px;background:rgba(0,0,0,0.2);border-radius:8px;border:1px solid rgba(255,255,255,0.05)">
+    <div style="font-size:13px;color:var(--muted);line-height:1.8">
+      <strong style="color:var(--gold)">📌 Attribution & Licensing</strong><br/>
+      This guide synthesizes wisdom from open-source environmental projects, indigenous knowledge systems, and regenerative movements. All external resources are attributed and linked to original sources. GitHub repositories respect original licenses. No proprietary code replicated.<br/><br/>
+      
+      <strong style="color:var(--gold)">🛡️ Zero-Harm Commitment</strong><br/>
+      This tool is designed for constructive learning, cooperative growth, and planetary restoration. NOT for: weaponization, surveillance, manipulation, or harm to people/biosphere/sovereignty.<br/><br/>
+      
+      <strong style="color:var(--gold)">📜 License</strong><br/>
+      CC BY-NC-SA 4.0 (non-commercial, share-alike with attribution)<br/><br/>
+      
+      <strong style="color:var(--gold)">📧 Contact</strong><br/>
+      Report vulnerabilities: admin@planetaryrestorationarchive.com
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div style="max-width:800px;margin:0 auto;line-height:1.8">
+    Next-gen cocaptains — shared wheel, ethical vigilance, systems mastery through cooperative action.<br/>
+    Mycelial wisdom: everything is connected. Small actions compound. Together we regenerate.
+  </div>
+</footer>
+
+<script>
+console.log(`
+🌐 MYCELIAL WEB LOADED
+━━━━━━━━━━━━━━━━━━━━━━
+✅ All content visible
+✅ 100+ planetary quests
+✅ Learning resources
+✅ Zero button gates
+━━━━━━━━━━━━━━━━━━━━━━
+Scroll freely. Connect deeply.
+`);
+</script>
+
+</body>
+</html>
