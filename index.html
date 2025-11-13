@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Cocaptain Field Guide — Cooperative Quest System</title>
+<style>
+  :root{
+    --bg:#0b0f12;
+    --panel:#0f1720;
+    --accent:#00e6c8;
+    --muted:#9aa5b1;
+    --gold:#ffd24d;
+    --quest-active:#4ade80;
+    --quest-complete:#22c55e;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#071219 0%,var(--bg) 100%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;color:#d7e6e2}
+  header{padding:18px 28px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  h1{margin:0;font-size:20px;color:var(--gold);letter-spacing:0.3px}
+  .layout{display:flex;height:calc(100% - 68px)}
+  aside{width:320px;background:var(--panel);box-shadow:-6px 0 30px rgba(0,0,0,0.6);padding:18px;overflow:auto}
+  main{flex:1;overflow:auto;padding:28px}
+  .board-title{color:var(--gold);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .lb-item{padding:12px;border-radius:8px;margin-bottom:10px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);cursor:pointer;display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(255,255,255,0.02);transition:all 0.2s ease}
+  .lb-item:hover{border-color:var(--accent);transform:translateX(4px)}
+  .section{margin-bottom:18px;padding:18px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01),rgba(255,255,255,0.00));border:1px solid rgba(255,255,255,0.03);transition:all 0.3s ease}
+  .section:hover{border-color:rgba(0,230,200,0.2)}
+  .section h2{margin:0;color:var(--gold);font-size:18px}
+  .meta{display:flex;gap:12px;margin-top:8px;align-items:center;color:var(--muted);font-size:13px;flex-wrap:wrap}
+  .content{margin-top:12px;color:#d7e6e2;line-height:1.56;max-height:0px;overflow:hidden;transition:max-height .4s ease,opacity .3s ease;opacity:0}
+  .section.expanded .content{max-height:12000px;opacity:1}
+  .progress-bar{height:10px;background:rgba(255,255,255,0.04);border-radius:8px;margin-top:10px;overflow:hidden}
+  .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#7affd1);transition:width .45s cubic-bezier(.2,.9,.2,1)}
+  .controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 12px;border-radius:8px;color:var(--muted);cursor:pointer;transition:all 0.2s ease;font-size:13px}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#022;border:none;font-weight:600}
+  .btn.primary:hover{background:#00ffdb}
+  .btn:disabled{opacity:0.4;cursor:not-allowed}
+  footer{padding:12px 28px;border-top:1px solid rgba(255,255,255,0.02);color:var(--muted);font-size:13px}
+  .small{font-size:12px;color:var(--muted)}
+  .badge{background:rgba(0,0,0,0.25);padding:6px 10px;border-radius:999px;color:var(--gold);font-weight:600;font-size:11px}
+  
+  /* Quest System Styles */
+  .quest-card{
+    background:linear-gradient(135deg,rgba(74,222,128,0.05),rgba(34,197,94,0.02));
+    border:1px solid rgba(74,222,128,0.2);
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:12px;
+    cursor:pointer;
+    transition:all 0.3s ease;
+  }
+  .quest-card:hover{
+    border-color:var(--quest-active);
+    transform:translateY(-2px);
+    box-shadow:0 8px 24px rgba(74,222,128,0.15);
+  }
+  .quest-card.completed{
+    background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(22,163,74,0.04));
+    border-color:rgba(34,197,94,0.3);
+    opacity:0.85;
+  }
+  .quest-card.active{
+    border-color:var(--quest-active);
+    box-shadow:0 4px 16px rgba(74,222,128,0.2);
+  }
+  .quest-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:8px;
+  }
+  .quest-title{
+    font-weight:600;
+    color:var(--quest-active);
+    font-size:14px;
+  }
+  .quest-reward{
+    background:rgba(255,210,77,0.15);
+    color:var(--gold);
+    padding:4px 8px;
+    border-radius:6px;
+    font-size:11px;
+    font-weight:600;
+  }
+  .quest-desc{
+    font-size:13px;
+    color:var(--muted);
+    line-height:1.5;
+    margin-bottom:10px;
+  }
+  .quest-progress{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .quest-progress-bar{
+    flex:1;
+    height:6px;
+    background:rgba(255,255,255,0.05);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .quest-progress-fill{
+    height:100%;
+    background:linear-gradient(90deg,var(--quest-active),var(--quest-complete));
+    transition:width 0.5s ease;
+  }
+  .quest-complete-badge{
+    color:var(--quest-complete);
+    font-weight:600;
+    font-size:12px;
+  }
+  
+  /* Party System Styles */
+  .party-member{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px;
+    background:rgba(255,255,255,0.02);
+    border-radius:8px;
+    margin-bottom:8px;
+    border:1px solid rgba(255,255,255,0.05);
+  }
+  .party-avatar{
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    background:linear-gradient(135deg,var(--accent),#7affd1);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:600;
+    color:#022;
+    font-size:14px;
+  }
+  .party-info{
+    flex:1;
+  }
+  .party-name{
+    font-weight:600;
+    font-size:13px;
+    color:#d7e6e2;
+  }
+  .party-stats{
+    font-size:11px;
+    color:var(--muted);
+  }
+  
+  /* Notification Toast */
+  .toast{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    padding:14px 18px;
+    background:rgba(0,0,0,0.95);
+    border-radius:10px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.6);
+    z-index:9999;
+    animation:slideIn 0.3s ease;
+    max-width:320px;
+    border-left:3px solid var(--accent);
+  }
+  @keyframes slideIn{
+    from{transform:translateX(400px);opacity:0}
+    to{transform:translateX(0);opacity:1}
+  }
+  
+  /* Quest Details Modal */
+  .modal{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.85);
+    z-index:10000;
+    align-items:center;
+    justify-content:center;
+    animation:fadeIn 0.2s ease;
+  }
+  .modal.active{display:flex}
+  /* Resource Library Styles */
+  .resource-card{
+    background:linear-gradient(135deg,rgba(96,165,250,0.08),rgba(59,130,246,0.04));
+    border:1px solid rgba(96,165,250,0.2);
+    border-radius:10px;
+    padding:14px;
+    margin-bottom:12px;
+    transition:all 0.3s ease;
+  }
+  .resource-card:hover{
+    border-color:rgba(96,165,250,0.4);
+    transform:translateY(-2px);
+    box-shadow:0 6px 20px rgba(96,165,250,0.15);
+  }
+  .resource-tag{
+    display:inline-block;
+    background:rgba(96,165,250,0.15);
+    color:#60a5fa;
+    padding:3px 8px;
+    border-radius:4px;
+    font-size:10px;
+    margin-right:6px;
+    margin-top:6px;
+    font-weight:600;
+  }
+  .expand-hint{
+    display:inline-block;
+    padding:6px 12px;
+    background:rgba(255,210,77,0.15);
+    color:var(--gold);
+    border-radius:6px;
+    font-size:12px;
+    margin-top:8px;
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1}
+    50%{opacity:0.6}
+  }
+  .tab-container{
+    display:flex;
+    gap:8px;
+    margin-bottom:16px;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+    padding-bottom:8px;
+    flex-wrap:wrap;
+  }
+  .tab-btn{
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    padding:8px 16px;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    transition:all 0.2s;
+    font-size:13px;
+    font-weight:500;
+  }
+  .tab-btn.active{
+    color:var(--accent);
+    border-bottom-color:var(--accent);
+  }
+  .tab-btn:hover{
+    color:var(--accent);
+  }
+  .modal-content{
+    background:var(--panel);
+    border-radius:16px;
+    padding:24px;
+    max-width:600px;
+    width:90%;
+    max-height:85vh;
+    overflow:auto;
+    border:1px solid rgba(255,255,255,0.1);
+    box-shadow:0 16px 64px rgba(0,0,0,0.8);
+    animation:slideUp 0.3s ease;
+  }
+  @keyframes slideUp{
+    from{transform:translateY(50px);opacity:0}
+    to{transform:translateY(0);opacity:1}
+  }
+  .modal-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:16px;
+    padding-bottom:16px;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .modal-title{
+    font-size:20px;
+    color:var(--gold);
+    font-weight:600;
+  }
+  .modal-close{
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    font-size:24px;
+    cursor:pointer;
+    padding:0;
+    width:30px;
+    height:30px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:6px;
+    transition:all 0.2s;
+  }
+  .modal-close:hover{
+    background:rgba(255,255,255,0.05);
+    color:#fff;
+  }
+  
+  /* Cooperative Actions */
+  .coop-actions{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+    flex-wrap:wrap;
+  }
+  .coop-btn{
+    flex:1;
+    min-width:140px;
+  }
+  
+  @media (max-width:880px){
+    aside{display:none}
+    header{padding:12px;flex-direction:column;align-items:flex-start}
+    main{padding:12px}
+    .modal-content{width:95%;padding:18px}
+  }
+</style>
+</head>
+<body>
+
+<!--
+ZERO-HARM COMMITMENT & LICENSE:
+This tool is designed for constructive learning, cooperative growth, and planetary restoration.
+NOT for: weaponization, surveillance, manipulation, or harm to people/biosphere/sovereignty.
+License: CC BY-NC-SA 4.0 (non-commercial, share-alike with attribution).
+Report vulnerabilities: admin@planetaryrestorationarchive.com
+-->
+
+<header>
+  <div style="display:flex;flex-direction:column;flex:1">
+    <h1>🔥 Cocaptain Field Guide — Cooperative Quest System</h1>
+    <div class="small">IndexedDB • Shared Quests • Party System • Zero-harm by design</div>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <div class="badge">🎯 <span id="totalQuests">0</span> Quests</div>
+    <div class="badge">⭐ <span id="totalPoints">0</span> Points</div>
+    <div class="badge">👥 <span id="partySize">1</span> Party</div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="board-title">
+      <span>🎯 Active Quests</span>
+      <button class="btn" style="margin-left:auto;padding:4px 8px;font-size:11px" onclick="showQuestCreator()">+ Browse</button>
+    </div>
+    <div id="questList"></div>
+    
+    <div style="height:20px"></div>
+    
+    <div class="board-title">📚 Learning Resources</div>
+    <div id="resourcesList"></div>
+    <button class="btn" style="width:100%;margin-top:8px;font-size:12px" onclick="showResourceLibrary()">📖 Full Library</button>
+    
+    <div style="height:20px"></div>
+    
+    <div class="board-title">👥 Your Party</div>
+    <div id="partyList"></div>
+    <button class="btn" style="width:100%;margin-top:8px" onclick="addPartyMember()">+ Invite Member</button>
+    
+    <div style="height:20px"></div>
+    
+    <div class="board-title">📊 Leaderboard</div>
+    <div id="leaderboardList"></div>
+    
+    <div style="height:20px"></div>
+    
+    <div class="board-title">⚙️ Quick Actions</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <button class="btn primary" onclick="exportAllData()">💾 Export All</button>
+      <button class="btn" onclick="importData()">📥 Import</button>
+      <button class="btn" onclick="resetProgress()">🔄 Reset</button>
+    </div>
+    <input id="fileInput" type="file" accept="application/json" style="display:none"/>
+  </aside>
+
+  <main>
+    <div style="margin-bottom:20px;padding:14px;background:linear-gradient(135deg,rgba(74,222,128,0.08),rgba(34,197,94,0.04));border-left:3px solid var(--quest-active);border-radius:8px">
+      <div class="small"><strong>🎮 How It Works:</strong> Complete quests solo or cooperatively. <strong>Click sections below to expand and reveal content.</strong> Join forces with party members to tackle shared challenges. Level up together!</div>
+    </div>
+    
+    <div class="tab-container">
+      <button class="tab-btn active" onclick="switchMainTab('guide')">📖 Field Guide</button>
+      <button class="tab-btn" onclick="switchMainTab('resources')">📚 Learning Hub</button>
+      <button class="tab-btn" onclick="switchMainTab('progress')">📊 Progress Tracker</button>
+    </div>
+    
+    <div id="guideContainer"></div>
+    <div id="resourcesContainer" style="display:none"></div>
+    <div id="progressContainer" style="display:none"></div>
+  </main>
+</div>
+
+<footer>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+    <span class="small">Next-gen cocaptains — shared wheel, ethical vigilance, systems mastery through cooperative quests.</span>
+    <span class="small">Zero-Harm • CC BY-NC-SA 4.0 • admin@planetaryrestorationarchive.com</span>
+  </div>
+</footer>
+
+<!-- Quest Details Modal -->
+<div id="questModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="modalQuestTitle"></div>
+      <button class="modal-close" onclick="closeQuestModal()">×</button>
+    </div>
+    <div id="modalQuestContent"></div>
+  </div>
+</div>
+
+<script>
+// ========== IndexedDB Setup ==========
+const DB_NAME = "CocaptainQuestDB_v1";
+const learningResources = {
+  github: [
+    {
+      title: "Awesome Sustainability",
+      url: "https://github.com/philsturgeon/awesome-sustainability",
+      description: "Comprehensive list of tools, initiatives, and resources for sustainability",
+      tags: ["climate", "tools", "directory"],
+      license: "CC0-1.0"
+    },
+    {
+      title: "Climate Change AI",
+      url: "https://github.com/climatechange-ai-tutorials",
+      description: "Machine learning tutorials for climate change applications",
+      tags: ["AI", "ML", "tutorials"],
+      license: "MIT"
+    },
+    {
+      title: "Awesome Earth",
+      url: "https://github.com/philsturgeon/awesome-earth",
+      description: "Services and products to help you lower your carbon footprint",
+      tags: ["lifestyle", "products", "carbon"],
+      license: "CC0-1.0"
+    },
+    {
+      title: "Open Sustainable Technology",
+      url: "https://github.com/protontypes/open-sustainable-technology",
+      description: "Curated list of open tech projects sustaining stable climate",
+      tags: ["open-source", "tech", "climate"],
+      license: "CC0-1.0"
+    },
+    {
+      title: "Carbon Footprint Calculator",
+      url: "https://github.com/protea-earth/carbon_footprint",
+      description: "Open source carbon footprint calculation tools",
+      tags: ["calculator", "tracking", "carbon"],
+      license: "MIT"
+    },
+    {
+      title: "Awesome Clean Tech",
+      url: "https://github.com/nglgzz/awesome-clean-tech",
+      description: "Companies fighting climate change via tech",
+      tags: ["cleantech", "companies", "innovation"],
+      license: "CC0-1.0"
+    },
+    {
+      title: "Climate Data Store Tools",
+      url: "https://github.com/ecmwf/cdsapi",
+      description: "Access climate data programmatically",
+      tags: ["data", "API", "climate"],
+      license: "Apache-2.0"
+    },
+    {
+      title: "Permaculture Design Patterns",
+      url: "https://github.com/Permaculture-Design/permaculture-design-patterns",
+      description: "Digital library of permaculture design patterns",
+      tags: ["permaculture", "design", "regenerative"],
+      license: "MIT"
+    },
+    {
+      title: "Renewable Energy Modeling",
+      url: "https://github.com/PyPSA/PyPSA",
+      description: "Python for Power System Analysis - renewable energy modeling",
+      tags: ["energy", "modeling", "python"],
+      license: "GPL-3.0"
+    },
+    {
+      title: "Eco-Score API",
+      url: "https://github.com/openfoodfacts/openfoodfacts-server",
+      description: "Open database for food products with environmental scores",
+      tags: ["food", "database", "API"],
+      license: "AGPL-3.0"
+    }
+  ],
+  guides: [
+    {
+      title: "IPCC Reports (Summaries)",
+      url: "https://www.ipcc.ch/reports/",
+      description: "Latest climate science from Intergovernmental Panel on Climate Change",
+      tags: ["science", "climate", "authoritative"]
+    },
+    {
+      title: "Drawdown Solutions",
+      url: "https://drawdown.org/solutions",
+      description: "100 substantive solutions to reverse global warming",
+      tags: ["solutions", "action", "comprehensive"]
+    },
+    {
+      title: "Permaculture Principles",
+      url: "https://permacultureprinciples.com/",
+      description: "12 design principles for regenerative systems",
+      tags: ["permaculture", "design", "principles"]
+    },
+    {
+      title: "Citizen Science Projects",
+      url: "https://www.zooniverse.org/",
+      description: "Participate in real scientific research",
+      tags: ["science", "participation", "community"]
+    },
+    {
+      title: "Transition Network Resources",
+      url: "https://transitionnetwork.org/resources/",
+      description: "Community-led responses to climate change",
+      tags: ["community", "transition", "local"]
+    }
+  ],
+  courses: [
+    {
+      title: "Climate Change: The Science",
+      provider: "edX / University of British Columbia",
+      description: "Free course on climate science fundamentals",
+      tags: ["science", "fundamentals", "free"]
+    },
+    {
+      title: "Regenerative Agriculture",
+      provider: "Savory Institute",
+      description: "Land management for carbon sequestration",
+      tags: ["agriculture", "carbon", "land"]
+    },
+    {
+      title: "Circular Economy",
+      provider: "Ellen MacArthur Foundation",
+      description: "Design out waste, regenerate natural systems",
+      tags: ["economy", "design", "systems"]
+    },
+    {
+      title: "Systems Thinking",
+      provider: "Acumen Academy",
+      description: "Free systems thinking for social change",
+      tags: ["systems", "thinking", "free"]
+    }
+  ],
+  tools: [
+    {
+      title: "iNaturalist",
+      description: "Identify species, contribute to citizen science",
+      tags: ["biodiversity", "app", "identification"]
+    },
+    {
+      title: "Ecosia",
+      description: "Search engine that plants trees",
+      tags: ["search", "trees", "everyday"]
+    },
+    {
+      title: "Journey.ai Carbon Tracker",
+      description: "Track personal carbon footprint",
+      tags: ["tracking", "personal", "carbon"]
+    },
+    {
+      title: "Too Good To Go",
+      description: "Reduce food waste by rescuing surplus",
+      tags: ["food", "waste", "app"]
+    },
+    {
+      title: "Buycott",
+      description: "Vote with your wallet - product ethics",
+      tags: ["shopping", "ethics", "transparency"]
+    }
+  ]
+};
+
+const STORES = {
+  sections: "sections",
+  quests: "quests",
+  party: "party",
+  resources: "resources"
+};
+let db;
+
+async function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onerror = () => reject("IndexedDB unavailable");
+    req.onupgradeneeded = (e) => {
+      db = e.target.result;
+      
+      if(!db.objectStoreNames.contains(STORES.sections)){
+        const s = db.createObjectStore(STORES.sections,{keyPath:"id",autoIncrement:true});
+        s.createIndex("title","title",{unique:false});
+      }
+      
+      if(!db.objectStoreNames.contains(STORES.quests)){
+        const q = db.createObjectStore(STORES.quests,{keyPath:"id",autoIncrement:true});
+        q.createIndex("status","status",{unique:false});
+      }
+      
+      if(!db.objectStoreNames.contains(STORES.party)){
+        const p = db.createObjectStore(STORES.party,{keyPath:"id",autoIncrement:true});
+      }
+      
+      if(!db.objectStoreNames.contains(STORES.resources)){
+        const r = db.createObjectStore(STORES.resources,{keyPath:"id",autoIncrement:true});
+      }
+    };
+    req.onsuccess = (e) => { 
+      db = e.target.result; 
+      resolve(db); 
+    };
+  });
+}
+
+async function putData(store, data){
+  const tx = db.transaction(store,"readwrite");
+  const st = tx.objectStore(store);
+  if(Array.isArray(data)){
+    for(const item of data) st.put(item);
+  } else {
+    st.put(data);
+  }
+  return new Promise((res,rej)=>{
+    tx.oncomplete = ()=>res();
+    tx.onerror = ()=>rej(tx.error);
+  });
+}
+
+async function getAllData(store){
+  return new Promise((res,rej)=>{
+    const tx = db.transaction(store,"readonly");
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+async function getData(store, id){
+  return new Promise((res,rej)=>{
+    const tx = db.transaction(store,"readonly");
+    const req = tx.objectStore(store).get(id);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+async function deleteData(store, id){
+  return new Promise((res,rej)=>{
+    const tx = db.transaction(store,"readwrite");
+    const req = tx.objectStore(store).delete(id);
+    req.onsuccess = () => res();
+    req.onerror = () => rej();
+  });
+}
+
+async function clearStore(store){
+  return new Promise((res,rej)=>{
+    const tx = db.transaction(store,"readwrite");
+    const req = tx.objectStore(store).clear();
+    req.onsucomplete = () => res();
+    req.onerror = () => rej();
+  });
+}
+
+// ========== Initial Data ==========
+const initialSections = [
+  {
+    title: "Section 1 — Entering the Forge: Orientation, Intent, and Compound Impact",
+    level: 1,
+    points: 0,
+    content: `Welcome to the Forge. This is more than a manual; it is an orientation ritual, a pragmatic cosmology, and a tactical playbook for next-gen cocaptains who will steer distributed systems of knowledge, culture, and planetary repair. Read this whole section in one sitting if possible. Let the words sit in the mind for a moment before you act.
+
+The Forge is a conceptual and operational space where ideas are born, rigorously tested, and propagated into resilient systems. Its operating logic rests on three pillars: (1) Synthesis across disciplines; (2) Iterative, feedback-driven deployment; (3) Moral and systemic prudence.
+
+Think of the Forge as a living organism. Each idea you contribute is a cell: some will fizzle and be reabsorbed; others will proliferate and contribute to a tissue of stable practices. Your responsibility as a cocaptain is to tend these cells—nurture promising ones, cull the dangerous ones, and propagate the robust ones outward into networks that amplify benevolence.
+
+Begin with intention architecture: before any action, write a two-paragraph intention describing the desired system state in three time horizons (6 months, 3 years, 30 years). This is your north star. Pair that intention with a minimal hypothesis: "If we do X then Y will change in Z measurable ways over T time." Keep hypotheses short and falsifiable.
+
+Deploy micro-experiments: low-cost, reversible interventions that test a single variable. Examples: run a narrative circle to test a framing, deploy a lightweight agent to mediate resource exchange, plant sensor-microclimates to test bio-augmentation. Log every micro-experiment in a shared registry with metadata: hypothesis, date, sample size, observed metrics, and verdict.
+
+Compound impact occurs when three conditions align: leverage, propagation, and guardrails. Leverage is the high-impact node (soil bank, community kitchen, modular AI). Propagation is ease of replication (open source, narrative contagion, protocol design). Guardrails are meta-rules preventing pathology (ethical checkpoints, redundancy, human vetoes).
+
+Practical rituals: weekly mini-retrospectives reviewing the registry. Create kill switch policies for all high-leverage interventions. Maintain a moral ledger alongside metrics. Cultivate narrative compression: write 120-word narratives after each experiment that communicate thesis, evidence, and lessons for non-experts.`,
+    notes: []
+  },
+  {
+    title: "Section 2 — The Role of the Cocaptain: Duties, Practices, and Mentorship",
+    level: 1,
+    points: 0,
+    content: `This is the cocaptain's field manual: what to carry, which maps to consult, and which rituals to perform when terrain gets strange. A cocaptain is not a commander; you are co-pilot, co-author, and co-guardian. You share the wheel with others.
+
+Embody three modes daily: (1) Observe with humility; (2) Intervene with restraint; (3) Teach with generosity.
+
+Observe: spend one hour daily on system listening—reading telemetry, attending conversations, reviewing experiments. Record two surprising signals and one hypothesis. Develop a surprise journal revealing your blind spots over time.
+
+Intervene: choose one micro-intervention daily. Examples: deploy focused framing, change scheduling protocol, patch an agent. Set kill switch and monitoring window. Use the 72-hour rule: unless imminent harm exists, observe problems for 72 hours before intervening to see if systems self-correct.
+
+Teach: mentor at least one successor weekly in shadow shifts where apprentices lead and you reflect. Maintain continuity documents for every project. Teaching is bidirectional—identify one thing learned from each apprentice to prevent hierarchical ossification.
+
+Distribute authority: decisions costing <0.1% resources can be solo. Medium (0.1-5%) require triad consensus. High (>5%) need external ethical review. Create decision logs recording decision, makers, rationale, dissent, and commit point.
+
+Practice moral imagination: run 10-minute ethical thought experiments before non-trivial interventions. Ask how adversaries might repurpose, who might be harmed, which communities should be consulted. Document anecdotes of success and failure—stories carry culture.`,
+    notes: []
+  },
+  {
+    title: "Section 3 — Guidelines, Guardrails, Protips, and Scenario Templates",
+    level: 1,
+    points: 0,
+    content: `Your compact playbook—operational rules, safety guardrails, and tactical protips to apply immediately.
+
+GUIDELINES: (1) Decenter—ask who is excluded; (2) Modularize—prefer small composable protocols; (3) Surveil thoughtfully—minimal telemetry with privacy; (4) Open by default—publish with protections; (5) Timebox ambition—6-8 week sprints; (6) Reward redundancy—duplicate implementations prevent brittleness.
+
+GUARDRAILS: (A) Ethical Review Ladder—peer review for low-risk, external signoff for high-risk; (B) Kill Switch Protocol—immediate rollback capability with designated authority; (C) Fail-Safe Simulation—red team attacks before rollout; (D) Data Minimization—collect what you need, justify what you store; (E) Accountability Trails—auditable reasoning with dissent recorded.
+
+PROTIPS: Storyfire (5-min narratives beat whitepapers), Micro-grants ($500-5k with 2-page proposals), Zero-trust onboarding (earn trust through small tasks), Three-moves briefings (wins/failures/next moves), Two-minute test (non-expert comprehension), Parallel prototyping (2-3 competing approaches), Retrospective pre-mortems (assume failure, design mitigations).
+
+RITUALS: Weekly Forge Sessions (2hrs: metrics, prototyping, synthesis), Bi-weekly Narrative Circles (story sharing and pattern identification), Monthly Reflection Councils (ledger review with external peer), Quarterly Shock Sims (full-day resilience testing), Annual Wander Week (unstructured exploration time).
+
+SCENARIOS: Resource Cascade Drill (48hr critical resource failure), Cultural Resilience Exercise (narrative reframing over 6 weeks), Ethical Misuse Tabletop (red team attacks), Succession Stress Test (sudden leader departure), Cross-Pollination (partner with different domain).
+
+Before major propagation, write: (1) Who benefits; (2) Who could be harmed; (3) What rollback looks like. Share in ledger. Success measured by generosity, sustainability, and system repair capacity.`,
+    notes: []
+  }
+];
+
+const planetaryQuests = {
+  biosphere: [
+    { title: "🌳 Plant a Food Tree", desc: "Plant one tree that yields carbon capture, shade, food, and morale", domain: "Biosphere", reward: 100, verification: "Photo or location description" },
+    { title: "🐝 Restore a Microhabitat", desc: "Create a birdbath, moss patch, or backyard pond", domain: "Biosphere", reward: 75, verification: "Photo or description of habitat" },
+    { title: "🌱 Start a Seed Exchange", desc: "Share seeds with 3 neighbors or community members", domain: "Biosphere", reward: 80, verification: "Record of exchanges" },
+    { title: "♻️ Begin Composting", desc: "Start a compost bin or vermicompost system", domain: "Biosphere", reward: 60, verification: "Photo of setup" },
+    { title: "💧 Capture Rainwater", desc: "Install rainwater catchment system", domain: "Biosphere", reward: 90, verification: "Photo of system" },
+    { title: "📍 Map Invasive Species", desc: "Document invasive species in your area for citizen science", domain: "Biosphere", reward: 70, verification: "Submit to iNaturalist or similar" },
+    { title: "🌊 Microplastic Cleanup", desc: "Pick up microplastics on 5 different walks", domain: "Biosphere", reward: 50, verification: "Photo log of collections" },
+    { title: "🌿 Grow Native Plants", desc: "Plant 3 native species in your area", domain: "Biosphere", reward: 85, verification: "Species list and photos" },
+    { title: "🚜 Support Regenerative Farms", desc: "Purchase directly from regenerative farm 3 times", domain: "Biosphere", reward: 65, verification: "Receipt or farm name" },
+    { title: "🦜 Winter Bird Feeding", desc: "Maintain bird feeder through one winter season", domain: "Biosphere", reward: 55, verification: "Photos over time" }
+  ],
+  atmosphere: [
+    { title: "🚴 Active Transit Week", desc: "Replace car trips with walking/cycling for 7 days", domain: "Atmosphere", reward: 70, verification: "Daily log" },
+    { title: "💡 LED Conversion", desc: "Replace all home bulbs with LEDs", domain: "Atmosphere", reward: 60, verification: "Before/after count" },
+    { title: "⚡ Track Energy Mix", desc: "Monitor your electricity usage for 30 days", domain: "Atmosphere", reward: 50, verification: "Usage report" },
+    { title: "🌡️ HVAC Maintenance", desc: "Clean all air vents and replace filters", domain: "Atmosphere", reward: 45, verification: "Photo documentation" },
+    { title: "🔥 Support Fire Restoration", desc: "Donate to verified wildfire restoration fund", domain: "Atmosphere", reward: 80, verification: "Receipt" },
+    { title: "👕 Air Dry Challenge", desc: "Use clothesline/drying rack for 30 days", domain: "Atmosphere", reward: 55, verification: "Photo and reflection" },
+    { title: "📱 Buy Used Electronics", desc: "Purchase next device secondhand", domain: "Atmosphere", reward: 75, verification: "Receipt or listing" },
+    { title: "🌫️ Air Quality Monitoring", desc: "Share local air quality data publicly for 14 days", domain: "Atmosphere", reward: 65, verification: "Data posts" },
+    { title: "☀️ Renewable Energy Switch", desc: "Change to renewable energy provider", domain: "Atmosphere", reward: 100, verification: "Provider confirmation" },
+    { title: "🌳 Advocate Tree Planting", desc: "Submit proposal for public land tree planting", domain: "Atmosphere", reward: 90, verification: "Submission proof" }
+  ],
+  hydrosphere: [
+    { title: "🚫 Stop Synthetic Fertilizer", desc: "Switch to organic alternatives for 6 months", domain: "Hydrosphere", reward: 70, verification: "Product list" },
+    { title: "💧 Install Faucet Aerators", desc: "Add aerators to all home faucets", domain: "Hydrosphere", reward: 50, verification: "Photos" },
+    { title: "🚿 Avoid Microbeads", desc: "Eliminate microbead products from routine", domain: "Hydrosphere", reward: 45, verification: "Product inventory" },
+    { title: "🌧️ Adopt a Drain", desc: "Keep one street drain clear for 3 months", domain: "Hydrosphere", reward: 60, verification: "Location and photos" },
+    { title: "🏖️ Shoreline Cleanup", desc: "Clean 100 meters of shoreline/riverbank", domain: "Hydrosphere", reward: 75, verification: "Before/after photos" },
+    { title: "🧼 Biodegradable Soaps", desc: "Switch all soaps to biodegradable", domain: "Hydrosphere", reward: 55, verification: "Product list" },
+    { title: "🌾 Support Wetland Preservation", desc: "Donate to wetland restoration project", domain: "Hydrosphere", reward: 80, verification: "Receipt" },
+    { title: "🔧 Report Water Waste", desc: "Report 3 pipe leaks or water waste incidents", domain: "Hydrosphere", reward: 50, verification: "Report numbers" },
+    { title: "♻️ Greywater System", desc: "Set up greywater capture for plants", domain: "Hydrosphere", reward: 85, verification: "System photo" },
+    { title: "🪸 Coral/Mangrove Sponsorship", desc: "Sponsor coral reef or mangrove planting", domain: "Hydrosphere", reward: 90, verification: "Sponsorship confirmation" }
+  ],
+  sociosphere: [
+    { title: "👋 Know Your Neighbors", desc: "Learn 5 neighbors' names this month", domain: "Sociosphere", reward: 40, verification: "Reflection note" },
+    { title: "🔧 Host Repair Café", desc: "Organize repair café or swap meet", domain: "Sociosphere", reward: 100, verification: "Event photos" },
+    { title: "📚 Support Local Library", desc: "Get library card and check out 5 items", domain: "Sociosphere", reward: 45, verification: "Card photo" },
+    { title: "🛠️ Tool Library", desc: "Donate or organize tool sharing system", domain: "Sociosphere", reward: 70, verification: "System description" },
+    { title: "🎓 Environmental Mentorship", desc: "Mentor someone in environmental literacy", domain: "Sociosphere", reward: 90, verification: "Mentorship log" },
+    { title: "🚨 Emergency Preparedness", desc: "Volunteer in community preparedness drill", domain: "Sociosphere", reward: 75, verification: "Participation proof" },
+    { title: "🧠 Mental Health Support", desc: "Support or volunteer with mental health initiative", domain: "Sociosphere", reward: 80, verification: "Activity log" },
+    { title: "🤝 Learn Mediation", desc: "Complete mediation or conflict resolution training", domain: "Sociosphere", reward: 85, verification: "Certificate" },
+    { title: "🍽️ Community Meals", desc: "Organize or attend 4 community meals", domain: "Sociosphere", reward: 60, verification: "Photos/dates" },
+    { title: "🎉 Celebrate Local Species", desc: "Organize 'Bee Day' or similar nature celebration", domain: "Sociosphere", reward: 95, verification: "Event documentation" }
+  ],
+  technosphere: [
+    { title: "🗑️ Digital Declutter", desc: "Delete 10GB of unused data", domain: "Technosphere", reward: 50, verification: "Before/after storage" },
+    { title: "🌳 Eco Search Engine", desc: "Switch to Ecosia or similar for 30 days", domain: "Technosphere", reward: 40, verification: "Screenshot" },
+    { title: "🌐 Use Mesh Networks", desc: "Set up or join local mesh network", domain: "Technosphere", reward: 80, verification: "Network details" },
+    { title: "💻 Open Source Contribution", desc: "Open-source a tool or dataset", domain: "Technosphere", reward: 100, verification: "Repository link" },
+    { title: "♻️ Repurpose Old Hardware", desc: "Give new life to 2 old devices", domain: "Technosphere", reward: 65, verification: "Photos and use case" },
+    { title: "💾 Data Preservation", desc: "Backup cultural/ecological data", domain: "Technosphere", reward: 70, verification: "Backup system description" },
+    { title: "🔬 Distributed Computing", desc: "Run BOINC or Folding@home for 30 days", domain: "Technosphere", reward: 75, verification: "Stats screenshot" },
+    { title: "👴 Teach Digital Literacy", desc: "Teach tech skills to elder or child", domain: "Technosphere", reward: 85, verification: "Session notes" },
+    { title: "🔒 Cybersecurity Education", desc: "Educate 5 people on cybersecurity basics", domain: "Technosphere", reward: 80, verification: "Education log" },
+    { title: "📵 Refuse Planned Obsolescence", desc: "Use device 2+ years past 'recommended' upgrade", domain: "Technosphere", reward: 90, verification: "Device age proof" }
+  ],
+  econosphere: [
+    { title: "🏦 Ethical Banking", desc: "Switch to credit union or ethical bank", domain: "Econosphere", reward: 85, verification: "Account confirmation" },
+    { title: "🤝 Support B-Corps", desc: "Make 5 purchases from B-Corps/cooperatives", domain: "Econosphere", reward: 70, verification: "Receipt list" },
+    { title: "🔄 Local Barter", desc: "Complete 3 barter/share transactions locally", domain: "Econosphere", reward: 60, verification: "Transaction log" },
+    { title: "📊 Track Consumption", desc: "Log all purchases for 30 days", domain: "Econosphere", reward: 55, verification: "Consumption report" },
+    { title: "☀️ Community Solar Investment", desc: "Invest in community solar or green bonds", domain: "Econosphere", reward: 100, verification: "Investment proof" },
+    { title: "🌍 Carbon Offset", desc: "Offset unavoidable emissions via verified program", domain: "Econosphere", reward: 80, verification: "Offset certificate" },
+    { title: "💚 Direct NGO Donation", desc: "Donate to effective NGO (verified impact)", domain: "Econosphere", reward: 75, verification: "Receipt" },
+    { title: "✂️ Cancel Dead Subscriptions", desc: "Cancel 3+ unused subscriptions", domain: "Econosphere", reward: 50, verification: "Cancellation confirmations" },
+    { title: "🌱 Nature Tithe", desc: "Commit 1% income to planetary repair for year", domain: "Econosphere", reward: 120, verification: "Commitment statement" },
+    { title: "🚀 Fund Regenerative Startups", desc: "Invest in small regenerative business", domain: "Econosphere", reward: 95, verification: "Investment details" }
+  ],
+  psyche: [
+    { title: "🧘 Outdoor Meditation", desc: "Meditate outdoors daily for 14 days", domain: "Psyche", reward: 60, verification: "Journal entries" },
+    { title: "🗣️ Learn Native Language", desc: "Learn 20 native language nature words", domain: "Psyche", reward: 70, verification: "Word list" },
+    { title: "🙏 Nature Gratitude Journal", desc: "30 days of gratitude for natural phenomena", domain: "Psyche", reward: 65, verification: "Journal excerpts" },
+    { title: "📵 Digital Sabbath", desc: "24 hours offline weekly for 4 weeks", domain: "Psyche", reward: 75, verification: "Reflection notes" },
+    { title: "🔍 Learn Ecological Tracking", desc: "Complete basic tracking course", domain: "Psyche", reward: 85, verification: "Course certificate" },
+    { title: "📖 Indigenous Philosophy", desc: "Read 2 books on indigenous ecology", domain: "Psyche", reward: 80, verification: "Book titles and reflections" },
+    { title: "💚 Practice Forgiveness", desc: "Forgiveness meditation for 7 days", domain: "Psyche", reward: 55, verification: "Journal reflection" },
+    { title: "🚶 Silent Nature Walks", desc: "10 silent walks in nature (30+ min each)", domain: "Psyche", reward: 70, verification: "Walk log" },
+    { title: "🎨 Art for Earth", desc: "Create artwork celebrating planetary systems", domain: "Psyche", reward: 90, verification: "Artwork image" },
+    { title: "😊 Joyful Minimalism", desc: "Live below means for 90 days joyfully", domain: "Psyche", reward: 100, verification: "Reflection essay" }
+  ],
+  education: [
+    { title: "👶 Teach Child to Grow", desc: "Help child grow plant from seed to harvest", domain: "Education", reward: 85, verification: "Progress photos" },
+    { title: "🏛️ Natural History Museum", desc: "Curate mini museum of local natural history", domain: "Education", reward: 90, verification: "Museum photos" },
+    { title: "📝 Science Translation", desc: "Write 3 articles explaining complex ecology simply", domain: "Education", reward: 95, verification: "Article links" },
+    { title: "🎤 Host Open Lecture", desc: "Sponsor or host open environmental lecture", domain: "Education", reward: 100, verification: "Event details" },
+    { title: "📚 Wikipedia Contribution", desc: "Add accurate climate info to 5 Wikipedia articles", domain: "Education", reward: 75, verification: "Edit links" },
+    { title: "🎬 Documentary Night", desc: "Host 3 environmental documentary screenings", domain: "Education", reward: 80, verification: "Event photos" },
+    { title: "😂 Memes for Good", desc: "Create 10 educational environmental memes", domain: "Education", reward: 60, verification: "Meme gallery" },
+    { title: "💼 Workplace Sustainability", desc: "Implement sustainability metric at work", domain: "Education", reward: 110, verification: "Implementation details" },
+    { title: "🔧 Celebrate Repair", desc: "Document 5 repair projects publicly", domain: "Education", reward: 70, verification: "Before/after posts" },
+    { title: "✉️ Thank Your Councillor", desc: "Write thanks for good environmental decision", domain: "Education", reward: 45, verification: "Letter copy" }
+  ],
+  governance: [
+    { title: "🗳️ Vote Locally", desc: "Vote in next local election", domain: "Governance", reward: 100, verification: "I Voted sticker/confirmation" },
+    { title: "🏛️ Attend Council Meeting", desc: "Attend and participate in council meeting", domain: "Governance", reward: 85, verification: "Meeting notes" },
+    { title: "📋 Sign Verified Petitions", desc: "Sign 3 verified environmental petitions", domain: "Governance", reward: 50, verification: "Petition links" },
+    { title: "🆔 Voter Registration", desc: "Help register 5 new voters", domain: "Governance", reward: 90, verification: "Registration confirmation" },
+    { title: "⚖️ Study Environmental Law", desc: "Learn your country's environmental legislation", domain: "Governance", reward: 80, verification: "Summary notes" },
+    { title: "🔬 Citizen Science", desc: "Participate in 3 citizen science projects", domain: "Governance", reward: 85, verification: "Project names" },
+    { title: "📰 Support Journalism", desc: "Subscribe to investigative journalism outlet", domain: "Governance", reward: 75, verification: "Subscription proof" },
+    { title: "🚫 Stand Against Corruption", desc: "Report or document corruption instance", domain: "Governance", reward: 95, verification: "Report details" },
+    { title: "📊 Defend Data Transparency", desc: "Request public environmental data via FOIA", domain: "Governance", reward: 100, verification: "Request copy" },
+    { title: "🤝 Promote Restorative Justice", desc: "Advocate for restorative over punitive approach", domain: "Governance", reward: 90, verification: "Advocacy documentation" }
+  ],
+  metasphere: [
+    { title: "🌍 Model Ecological Humility", desc: "Practice humble ecological discourse for 30 days", domain: "Metasphere", reward: 70, verification: "Reflection journal" },
+    { title: "📱 Share Acts Transparently", desc: "Document and share 10 planetary acts online", domain: "Metasphere", reward: 80, verification: "Post links" },
+    { title: "👥 Form Tiny Collective", desc: "Create aligned group of 5 stewards", domain: "Metasphere", reward: 120, verification: "Group charter" },
+    { title: "📈 Track Personal Impact", desc: "Maintain impact dashboard for 90 days", domain: "Metasphere", reward: 85, verification: "Dashboard screenshots" },
+    { title: "🎉 Celebrate Others", desc: "Publicly recognize 10 stewards' work", domain: "Metasphere", reward: 75, verification: "Recognition posts" },
+    { title: "🔗 Cross-Pollinate Projects", desc: "Link 3 local acts to global goals", domain: "Metasphere", reward: 90, verification: "Connection documentation" },
+    { title: "📊 Prototype Dashboard", desc: "Create open-source planetary dashboard", domain: "Metasphere", reward: 150, verification: "Dashboard link" },
+    { title: "💔 Document Failure", desc: "Share 3 failure stories with lessons", domain: "Metasphere", reward: 95, verification: "Failure documentation" },
+    { title: "😊 Practice Debate Kindness", desc: "Engage in 5 kind ecological debates", domain: "Metasphere", reward: 70, verification: "Debate summaries" },
+    { title: "🎯 Choose Your Path", desc: "Complete 10 quests from any domains", domain: "Metasphere", reward: 200, verification: "Quest completion log" }
+  ]
+};
+
+const initialQuests = [
+  {
+    title: "First Steps",
+    description: "Read your first section completely and claim points",
+    type: "solo",
+    status: "active",
+    progress: 0,
+    target: 1,
+    reward: 50,
+    requirements: "Expand and read any section, then claim points",
+    category: "tutorial"
+  },
+  {
+    title: "Knowledge Keeper",
+    description: "Add personal notes to 3 different sections",
+    type: "solo",
+    status: "active",
+    progress: 0,
+    target: 3,
+    reward: 75,
+    requirements: "Use the note feature on 3 sections",
+    category: "tutorial"
+  },
+  {
+    title: "Party Formation",
+    description: "Invite 2 party members to join your journey",
+    type: "cooperative",
+    status: "active",
+    progress: 0,
+    target: 2,
+    reward: 150,
+    requirements: "Add 2 party members via the sidebar",
+    category: "tutorial"
+  },
+  {
+    title: "🌳 Plant a Food Tree",
+    description: "Plant one tree that yields carbon capture, shade, food, and morale",
+    type: "planetary",
+    status: "available",
+    progress: 0,
+    target: 1,
+    reward: 100,
+    requirements: "Photo or location description required for verification",
+    category: "biosphere",
+    verification: "livestream"
+  },
+  {
+    title: "🚴 Active Transit Week",
+    description: "Replace car trips with walking/cycling for 7 consecutive days",
+    type: "planetary",
+    status: "available",
+    progress: 0,
+    target: 7,
+    reward: 70,
+    requirements: "Daily log of trips replaced",
+    category: "atmosphere",
+    verification: "livestream"
+  },
+  {
+    title: "👋 Know Your Neighbors",
+    description: "Learn 5 neighbors' names this month",
+    type: "planetary",
+    status: "available",
+    progress: 0,
+    target: 5,
+    reward: 40,
+    requirements: "Reflection note on connections made",
+    category: "sociosphere",
+    verification: "self-report"
+  }
+];
+
+const initialParty = [
+  {
+    name: "You",
+    role: "Cocaptain",
+    level: 1,
+    points: 0,
+    avatar: "🔥"
+  }
+];
+
+// ========== State Management ==========
+let currentUser = initialParty[0];
+
+async function init(){
+  await openDB();
+  
+  const sections = await getAllData(STORES.sections);
+  if(!sections || sections.length === 0){
+    await putData(STORES.sections, initialSections);
+  }
+  
+  const quests = await getAllData(STORES.quests);
+  if(!quests || quests.length === 0){
+    await putData(STORES.quests, initialQuests);
+  }
+  
+  const party = await getAllData(STORES.party);
+  if(!party || party.length === 0){
+    await putData(STORES.party, initialParty);
+  }
+  
+  // Initialize resources
+  const resources = await getAllData(STORES.resources);
+  if(!resources || resources.length === 0){
+    const allResources = [
+      ...learningResources.github.map(r => ({...r, category: 'github'})),
+      ...learningResources.guides.map(r => ({...r, category: 'guides'})),
+      ...learningResources.courses.map(r => ({...r, category: 'courses'})),
+      ...learningResources.tools.map(r => ({...r, category: 'tools'}))
+    ];
+    await putData(STORES.resources, allResources);
+  }
+  
+  render();
+}
+
+// ========== Rendering ==========
+async function render(){
+  await renderSections();
+  await renderQuests();
+  await renderParty();
+  await renderLeaderboard();
+  await renderResourcesSidebar();
+  await updateHeaderStats();
+}
+
+async function renderResourcesSidebar(){
+  const resources = await getAllData(STORES.resources);
+  const container = document.getElementById("resourcesList");
+  
+  const featured = resources.filter(r => r.category === 'github').slice(0, 3);
+  
+  container.innerHTML = featured.map(r => `
+    <div style="padding:8px;background:rgba(96,165,250,0.05);border-left:2px solid #60a5fa;border-radius:4px;margin-bottom:8px;cursor:pointer" onclick="window.open('${r.url}', '_blank')">
+      <div style="font-size:12px;font-weight:600;color:#60a5fa;margin-bottom:2px">${escapeHtml(r.title)}</div>
+      <div style="font-size:10px;color:var(--muted)">${escapeHtml(truncate(r.description, 60))}</div>
+    </div>
+  `).join('');
+}
+
+async function renderSections(){
+  const sections = await getAllData(STORES.sections);
+  const container = document.getElementById("guideContainer");
+  container.innerHTML = "";
+  
+  for(const sec of sections){
+    const div = document.createElement("div");
+    div.className = "section";
+    div.id = `sec-${sec.id}`;
+    
+    const notesHtml = (sec.notes && sec.notes.length > 0) ? 
+      sec.notes.map(n => `<div style="padding:6px;background:rgba(0,0,0,0.2);border-radius:4px;margin-top:6px;font-size:12px">📝 ${escapeHtml(n.text)} <span style="color:var(--muted);font-size:10px">(${new Date(n.ts).toLocaleString()})</span></div>`).join('') : '';
+    
+    div.innerHTML = `
+      <h2>${escapeHtml(sec.title)}</h2>
+      <div class="meta">
+        <div class="small">Lvl <strong>${sec.level}</strong></div>
+        <div class="small">⭐ <strong>${sec.points}</strong></div>
+        <div class="small">📏 ${sec.content.length.toLocaleString()} chars</div>
+        <span class="expand-hint">👆 Click to expand & read</span>
+      </div>
+      <div class="content" id="content-${sec.id}">${nl2br(escapeHtml(sec.content))}</div>
+      ${notesHtml}
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${calcProgress(sec)}%"></div>
+      </div>
+      <div class="controls">
+        <button class="btn primary" onclick="claimPoints(${sec.id}, 10)">⭐ Claim +10</button>
+        <button class="btn" onclick="addNote(${sec.id})">📝 Note</button>
+        <button class="btn" onclick="shareWithParty(${sec.id})">👥 Share</button>
+      </div>
+    `;
+    
+    div.addEventListener("click", (e)=>{
+      if(e.target.tagName.toLowerCase() === 'button') return;
+      div.classList.toggle("expanded");
+      if(div.classList.contains("expanded")){
+        checkQuestProgress('read_section');
+      }
+    });
+    
+    container.appendChild(div);
+  }
+}
+
+async function renderQuests(){
+  const quests = await getAllData(STORES.quests);
+  const container = document.getElementById("questList");
+  container.innerHTML = "";
+  
+  const activeQuests = quests.filter(q => q.status === 'active');
+  const completedQuests = quests.filter(q => q.status === 'completed');
+  
+  for(const quest of activeQuests){
+    const div = document.createElement("div");
+    div.className = `quest-card ${quest.status}`;
+    
+    const progressPct = Math.min(100, Math.round((quest.progress / quest.target) * 100));
+    
+    div.innerHTML = `
+      <div class="quest-header">
+        <div class="quest-title">${quest.type === 'cooperative' ? '👥' : '⚔️'} ${escapeHtml(quest.title)}</div>
+        <div class="quest-reward">+${quest.reward} pts</div>
+      </div>
+      <div class="quest-desc">${escapeHtml(quest.description)}</div>
+      <div class="quest-progress">
+        <div class="quest-progress-bar">
+          <div class="quest-progress-fill" style="width:${progressPct}%"></div>
+        </div>
+        <span>${quest.progress}/${quest.target}</span>
+      </div>
+    `;
+    
+    div.addEventListener("click", ()=>showQuestDetails(quest.id));
+    container.appendChild(div);
+  }
+  
+  if(completedQuests.length > 0){
+    const divider = document.createElement("div");
+    divider.style.cssText = "margin:16px 0;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05);color:var(--muted);font-size:11px;font-weight:600";
+    divider.textContent = "✅ COMPLETED";
+    container.appendChild(divider);
+    
+    for(const quest of completedQuests.slice(0, 3)){
+      const div = document.createElement("div");
+      div.className = "quest-card completed";
+      div.innerHTML = `
+        <div class="quest-header">
+          <div class="quest-title">✅ ${escapeHtml(quest.title)}</div>
+          <div class="quest-complete-badge">+${quest.reward}</div>
+        </div>
+      `;
+      container.appendChild(div);
+    }
+  }
+}
+
+async function renderParty(){
+  const party = await getAllData(STORES.party);
+  const container = document.getElementById("partyList");
+  container.innerHTML = "";
+  
+  for(const member of party){
+    const div = document.createElement("div");
+    div.className = "party-member";
+    div.innerHTML = `
+      <div class="party-avatar">${member.avatar}</div>
+      <div class="party-info">
+        <div class="party-name">${escapeHtml(member.name)}</div>
+        <div class="party-stats">Lvl ${member.level} • ${member.points} pts</div>
+      </div>
+    `;
+    container.appendChild(div);
+  }
+}
+
+async function renderLeaderboard(){
+  const sections = await getAllData(STORES.sections);
+  const sorted = [...sections].sort((a,b)=>b.points - a.points);
+  const container = document.getElementById("leaderboardList");
+  container.innerHTML = "";
+  
+  for(const sec of sorted.slice(0, 5)){
+    const div = document.createElement("div");
+    div.className = "lb-item";
+    div.innerHTML = `
+      <div>
+        <strong style="font-size:12px">${escapeHtml(truncate(sec.title, 35))}</strong>
+      </div>
+      <div style="text-align:right">
+        <small style="color:var(--gold)">⭐ ${sec.points}</small>
+      </div>
+    `;
+    div.addEventListener("click", ()=>{
+      document.getElementById(`sec-${sec.id}`).scrollIntoView({behavior:"smooth"});
+    });
+    container.appendChild(div);
+  }
+}
+
+async function updateHeaderStats(){
+  const quests = await getAllData(STORES.quests);
+  const party = await getAllData(STORES.party);
+  const sections = await getAllData(STORES.sections);
+  
+  const totalPoints = party.reduce((sum, m) => sum + m.points, 0);
+  
+  document.getElementById("totalQuests").textContent = quests.filter(q=>q.status==='active').length;
+  document.getElementById("totalPoints").textContent = totalPoints;
+  document.getElementById("partySize").textContent = party.length;
+}
+
+// ========== Quest System ==========
+async function checkQuestProgress(action, amount = 1){
+  const quests = await getAllData(STORES.quests);
+  
+  const questMap = {
+    'read_section': 'First Steps',
+    'add_note': 'Knowledge Keeper',
+    'level_up': 'Level Up',
+    'add_party': 'Party Formation',
+    'export_data': 'Master Archivist'
+  };
+  
+  const questTitle = questMap[action];
+  if(!questTitle) return;
+  
+  const quest = quests.find(q => q.title === questTitle && q.status === 'active');
+  if(!quest) return;
+  
+  quest.progress = Math.min(quest.target, quest.progress + amount);
+  
+  if(quest.progress >= quest.target){
+    quest.status = 'completed';
+    await completeQuest(quest);
+  }
+  
+  await putData(STORES.quests, quest);
+  await renderQuests();
+}
+
+async function completeQuest(quest){
+  const party = await getAllData(STORES.party);
+  
+  if(quest.type === 'cooperative'){
+    const pointsPerMember = Math.floor(quest.reward / party.length);
+    for(const member of party){
+      member.points += pointsPerMember;
+      await putData(STORES.party, member);
+    }
+    toast(`🎉 Quest Complete! Party earned ${quest.reward} points!`, 'success');
+  } else {
+    currentUser.points += quest.reward;
+    await putData(STORES.party, currentUser);
+    toast(`⭐ Quest Complete! You earned ${quest.reward} points!`, 'success');
+  }
+  
+  await updateHeaderStats();
+  await renderParty();
+}
+
+async function showQuestDetails(questId){
+  const quest = await getData(STORES.quests, questId);
+  const modal = document.getElementById("questModal");
+  
+  const categoryBadge = quest.category ? 
+    `<span style="background:rgba(74,222,128,0.15);color:var(--quest-active);padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;text-transform:capitalize">${quest.category}</span>` : '';
+  
+  const verificationSection = quest.verification === 'livestream' ? `
+    <div style="padding:14px;background:rgba(74,222,128,0.08);border-radius:8px;border-left:3px solid var(--quest-active);margin-bottom:16px">
+      <div style="font-size:12px;color:var(--quest-active);font-weight:600;margin-bottom:8px">🎥 Livestream Verification Available</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">
+        This quest can be verified via livestream to IndexedDB. Complete the quest, submit evidence, and earn verified completion status.
+      </div>
+      <button class="btn primary" style="width:100%;font-size:13px" onclick="submitQuestVerification(${questId})">📤 Submit Verification</button>
+    </div>
+  ` : `
+    <div style="padding:14px;background:rgba(255,210,77,0.08);border-radius:8px;border-left:3px solid var(--gold);margin-bottom:16px">
+      <div style="font-size:12px;color:var(--gold);font-weight:600;margin-bottom:4px">📋 Verification: ${quest.verification || 'Self-report'}</div>
+      <div style="font-size:13px;color:var(--muted)">${quest.requirements}</div>
+    </div>
+  `;
+  
+  document.getElementById("modalQuestTitle").textContent = quest.title;
+  document.getElementById("modalQuestContent").innerHTML = `
+    <div style="margin-bottom:16px">
+      <div style="color:var(--muted);font-size:13px;margin-bottom:8px;display:flex;gap:8px;align-items:center">
+        ${quest.type === 'cooperative' ? '👥 Cooperative Quest' : quest.type === 'planetary' ? '🌍 Planetary Quest' : '⚔️ Solo Quest'}
+        ${categoryBadge}
+      </div>
+      <div style="font-size:15px;line-height:1.6;margin-bottom:12px">
+        ${escapeHtml(quest.description)}
+      </div>
+    </div>
+    
+    ${verificationSection}
+    
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:13px;color:var(--muted)">Progress</span>
+        <span style="font-size:13px;color:var(--accent);font-weight:600">${quest.progress} / ${quest.target}</span>
+      </div>
+      <div class="progress-bar" style="height:12px">
+        <div class="progress-fill" style="width:${Math.min(100, (quest.progress/quest.target)*100)}%"></div>
+      </div>
+    </div>
+    
+    <div style="padding:14px;background:rgba(0,230,200,0.05);border-radius:8px;text-align:center;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Reward</div>
+      <div style="font-size:24px;color:var(--gold);font-weight:600">+${quest.reward} Points</div>
+    </div>
+    
+    ${quest.status === 'active' ? `
+      <div class="coop-actions">
+        <button class="btn" onclick="incrementQuestProgress(${questId})">+1 Progress</button>
+        <button class="btn primary" onclick="closeQuestModal()">Continue</button>
+        ${quest.type === 'cooperative' ? `<button class="btn" onclick="shareQuestWithParty(${questId})">👥 Share</button>` : ''}
+      </div>
+    ` : `
+      <div style="text-align:center;padding:16px;color:var(--quest-complete);font-weight:600;font-size:16px">
+        ✅ Quest Completed!
+      </div>
+    `}
+  `;
+  
+  modal.classList.add("active");
+}
+
+async function submitQuestVerification(questId){
+  const quest = await getData(STORES.quests, questId);
+  
+  const evidence = prompt(`Submit verification evidence for: ${quest.title}\n\nEnter details (photo URL, description, date, etc.):`);
+  
+  if(!evidence || !evidence.trim()){
+    toast("Verification cancelled", 'info');
+    return;
+  }
+  
+  quest.verificationData = {
+    evidence: evidence.trim(),
+    timestamp: Date.now(),
+    status: 'verified',
+    method: 'livestream'
+  };
+  
+  quest.progress = quest.target;
+  quest.status = 'completed';
+  
+  await putData(STORES.quests, quest);
+  await completeQuest(quest);
+  
+  toast("✅ Quest verified and completed!", 'success');
+  closeQuestModal();
+  await renderQuests();
+}
+
+async function incrementQuestProgress(questId){
+  const quest = await getData(STORES.quests, questId);
+  
+  if(quest.progress < quest.target){
+    quest.progress++;
+    await putData(STORES.quests, quest);
+    
+    if(quest.progress >= quest.target){
+      quest.status = 'completed';
+      await completeQuest(quest);
+      closeQuestModal();
+    } else {
+      toast(`Progress: ${quest.progress}/${quest.target}`, 'info');
+      await showQuestDetails(questId);
+    }
+    
+    await renderQuests();
+  }
+}
+
+function closeQuestModal(){
+  document.getElementById("questModal").classList.remove("active");
+}
+
+async function shareQuestWithParty(questId){
+  toast("Quest shared with party members!", 'success');
+  closeQuestModal();
+}
+
+function showQuestCreator(){
+  const modal = document.getElementById("questModal");
+  document.getElementById("modalQuestTitle").textContent = "🎯 Quest Browser";
+  
+  const domains = Object.keys(planetaryQuests);
+  
+  let domainTabs = domains.map(d => 
+    `<button class="btn" style="text-transform:capitalize;margin:4px" onclick="showDomainQuests('${d}')">${d}</button>`
+  ).join('');
+  
+  document.getElementById("modalQuestContent").innerHTML = `
+    <div style="margin-bottom:20px">
+      <div style="color:var(--muted);font-size:13px;margin-bottom:12px">
+        Choose from 100 planetary stewardship quests organized by domain. Each quest is a "microscopic heroism" that scales through collective action.
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${domainTabs}
+        <button class="btn primary" style="margin:4px" onclick="showCustomQuestCreator()">+ Create Custom</button>
+      </div>
+    </div>
+    <div id="domainQuestDisplay"></div>
+  `;
+  
+  modal.classList.add("active");
+  showDomainQuests(domains[0]);
+}
+
+function showDomainQuests(domain){
+  const quests = planetaryQuests[domain];
+  const display = document.getElementById("domainQuestDisplay");
+  
+  display.innerHTML = `
+    <div style="margin-bottom:12px;padding:10px;background:rgba(74,222,128,0.08);border-radius:8px;border-left:3px solid var(--quest-active)">
+      <div style="font-weight:600;color:var(--quest-active);text-transform:capitalize;margin-bottom:4px">${domain}</div>
+      <div style="font-size:12px;color:var(--muted)">${quests.length} quests available in this domain</div>
+    </div>
+    ${quests.map((q, i) => `
+      <div style="padding:12px;margin-bottom:10px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.05)">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+          <div>
+            <div style="font-weight:600;font-size:14px;margin-bottom:4px">${q.title}</div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:6px">${q.desc}</div>
+            <div style="font-size:11px;color:var(--muted)">📋 ${q.verification}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="background:rgba(255,210,77,0.15);color:var(--gold);padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;white-space:nowrap">+${q.reward} pts</div>
+          </div>
+        </div>
+        <button class="btn primary" style="width:100%;font-size:12px" onclick='acceptPlanetaryQuest(${JSON.stringify(q).replace(/'/g, "&#39;")})'>Accept Quest</button>
+      </div>
+    `).join('')}
+  `;
+}
+
+async function acceptPlanetaryQuest(questData){
+  const newQuest = {
+    title: questData.title,
+    description: questData.desc,
+    type: "planetary",
+    status: "active",
+    progress: 0,
+    target: 1,
+    reward: questData.reward,
+    requirements: questData.verification,
+    category: questData.domain.toLowerCase(),
+    verification: "livestream"
+  };
+  
+  await putData(STORES.quests, newQuest);
+  toast(`Quest accepted: ${questData.title}`, 'success');
+  closeQuestModal();
+  await renderQuests();
+}
+
+function showCustomQuestCreator(){
+  document.getElementById("modalQuestContent").innerHTML = `
+    <div style="margin-bottom:16px">
+      <label style="display:block;margin-bottom:8px;font-size:13px;color:var(--muted)">Quest Title</label>
+      <input id="customQuestTitle" type="text" style="width:100%;padding:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:14px" placeholder="e.g., Start a Community Garden"/>
+    </div>
+    
+    <div style="margin-bottom:16px">
+      <label style="display:block;margin-bottom:8px;font-size:13px;color:var(--muted)">Description</label>
+      <textarea id="customQuestDesc" style="width:100%;padding:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:14px;min-height:80px;resize:vertical" placeholder="Describe what needs to be accomplished..."></textarea>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div>
+        <label style="display:block;margin-bottom:8px;font-size:13px;color:var(--muted)">Target</label>
+        <input id="customQuestTarget" type="number" min="1" value="1" style="width:100%;padding:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:14px"/>
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:8px;font-size:13px;color:var(--muted)">Reward Points</label>
+        <input id="customQuestReward" type="number" min="10" value="50" step="5" style="width:100%;padding:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:14px"/>
+      </div>
+    </div>
+    
+    <div style="margin-bottom:16px">
+      <label style="display:block;margin-bottom:8px;font-size:13px;color:var(--muted)">Type</label>
+      <select id="customQuestType" style="width:100%;padding:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:14px">
+        <option value="solo">⚔️ Solo Quest</option>
+        <option value="cooperative">👥 Cooperative Quest</option>
+        <option value="planetary">🌍 Planetary Quest</option>
+      </select>
+    </div>
+    
+    <div style="margin-bottom:16px">
+      <label style="display:block;margin-bottom:8px;font-size:13px;color:var(--muted)">Verification Method</label>
+      <input id="customQuestVerification" type="text" style="width:100%;padding:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:14px" placeholder="e.g., Photo, livestream confirm, self-report"/>
+    </div>
+    
+    <div class="coop-actions">
+      <button class="btn" onclick="showQuestCreator()">Back to Browser</button>
+      <button class="btn primary" onclick="createCustomQuest()">Create Quest</button>
+    </div>
+  `;
+}
+
+async function createCustomQuest(){
+  const title = document.getElementById("customQuestTitle").value.trim();
+  const description = document.getElementById("customQuestDesc").value.trim();
+  const target = parseInt(document.getElementById("customQuestTarget").value);
+  const reward = parseInt(document.getElementById("customQuestReward").value);
+  const type = document.getElementById("customQuestType").value;
+  const verification = document.getElementById("customQuestVerification").value.trim();
+  
+  if(!title || !description){
+    toast("Please fill in title and description", 'warning');
+    return;
+  }
+  
+  const newQuest = {
+    title,
+    description,
+    type,
+    status: "active",
+    progress: 0,
+    target: target || 1,
+    reward: reward || 50,
+    requirements: verification || "Self-verification",
+    category: "custom",
+    verification: verification || "self-report"
+  };
+  
+  await putData(STORES.quests, newQuest);
+  toast("Custom quest created!", 'success');
+  closeQuestModal();
+  await renderQuests();
+}
+
+// ========== Section Actions ==========
+async function claimPoints(sectionId, points){
+  const section = await getData(STORES.sections, sectionId);
+  section.points = (section.points || 0) + points;
+  
+  const threshold = section.level * 50;
+  if(section.points >= threshold){
+    const oldLevel = section.level;
+    section.level++;
+    section.points = 0;
+    toast(`🔥 Level Up! ${truncate(section.title, 30)} is now Level ${section.level}!`, 'success');
+    
+    if(oldLevel === 1){
+      await checkQuestProgress('level_up');
+    }
+  } else {
+    toast(`+${points} points claimed!`, 'info');
+  }
+  
+  await putData(STORES.sections, section);
+  
+  currentUser.points += points;
+  await putData(STORES.party, currentUser);
+  
+  await checkQuestProgress('collective_points', points);
+  await render();
+}
+
+async function addNote(sectionId){
+  const note = prompt("Add your note:");
+  if(!note || !note.trim()) return;
+  
+  const section = await getData(STORES.sections, sectionId);
+  section.notes = section.notes || [];
+  section.notes.push({
+    text: note.trim().slice(0, 500),
+    ts: Date.now()
+  });
+  
+  await putData(STORES.sections, section);
+  await checkQuestProgress('add_note');
+  toast("Note added!", 'success');
+  render();
+}
+
+async function shareWithParty(sectionId){
+  const section = await getData(STORES.sections, sectionId);
+  toast(`Shared "${truncate(section.title, 30)}" with party!`, 'success');
+}
+
+// ========== Party Management ==========
+async function addPartyMember(){
+  const name = prompt("Party member name:");
+  if(!name || !name.trim()) return;
+  
+  const avatars = ['🎯','⚡','🌟','💎','🔮','🎨','🚀','🌊','🔥','⭐'];
+  const avatar = avatars[Math.floor(Math.random() * avatars.length)];
+  
+  const newMember = {
+    name: name.trim(),
+    role: "Cocaptain",
+    level: 1,
+    points: 0,
+    avatar
+  };
+  
+  await putData(STORES.party, newMember);
+  await checkQuestProgress('add_party');
+  toast(`${name} joined the party!`, 'success');
+  render();
+}
+
+// ========== Data Management ==========
+async function exportAllData(){
+  const sections = await getAllData(STORES.sections);
+  const quests = await getAllData(STORES.quests);
+  const party = await getAllData(STORES.party);
+  
+  const exportData = {
+    version: "1.0",
+    exported: new Date().toISOString(),
+    sections,
+    quests,
+    party
+  };
+  
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cocaptain_backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  await checkQuestProgress('export_data');
+  toast("Data exported successfully!", 'success');
+}
+
+function importData(){
+  document.getElementById("fileInput").click();
+}
+
+document.getElementById("fileInput").addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = async (event)=>{
+    try{
+      const data = JSON.parse(event.target.result);
+      
+      if(!data.sections || !data.quests || !data.party){
+        throw new Error("Invalid backup file format");
+      }
+      
+      if(!confirm(`Import data from ${data.exported}? This will replace current progress.`)){
+        return;
+      }
+      
+      await clearStore(STORES.sections);
+      await clearStore(STORES.quests);
+      await clearStore(STORES.party);
+      
+      await putData(STORES.sections, data.sections);
+      await putData(STORES.quests, data.quests);
+      await putData(STORES.party, data.party);
+      
+      toast("Data imported successfully!", 'success');
+      render();
+    } catch(err){
+      toast(`Import failed: ${err.message}`, 'error');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+async function resetProgress(){
+  if(!confirm("⚠️ Reset all progress? This cannot be undone.")){
+    return;
+  }
+  
+  await clearStore(STORES.sections);
+  await clearStore(STORES.quests);
+  await clearStore(STORES.party);
+  
+  await putData(STORES.sections, initialSections);
+  await putData(STORES.quests, initialQuests);
+  await putData(STORES.party, initialParty);
+  
+  toast("Progress reset!", 'info');
+  render();
+}
+
+// ========== Tab Switching ==========
+function switchMainTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  
+  document.getElementById('guideContainer').style.display = tab === 'guide' ? 'block' : 'none';
+  document.getElementById('resourcesContainer').style.display = tab === 'resources' ? 'block' : 'none';
+  document.getElementById('progressContainer').style.display = tab === 'progress' ? 'block' : 'none';
+  
+  if(tab === 'resources') renderResourcesHub();
+  if(tab === 'progress') renderProgressTracker();
+}
+
+async function renderResourcesHub(){
+  const resources = await getAllData(STORES.resources);
+  const container = document.getElementById('resourcesContainer');
+  
+  const categories = {
+    github: { title: '💻 GitHub Projects', icon: '💻', color: '#60a5fa' },
+    guides: { title: '📖 Essential Guides', icon: '📖', color: '#4ade80' },
+    courses: { title: '🎓 Online Courses', icon: '🎓', color: '#f59e0b' },
+    tools: { title: '🛠️ Practical Tools', icon: '🛠️', color: '#ec4899' }
+  };
+  
+  let html = '<div style="margin-bottom:20px"><h2 style="color:var(--gold);margin-bottom:8px">📚 Learning Resource Library</h2><p style="color:var(--muted);font-size:14px">Curated resources from GitHub and beyond to support your planetary stewardship journey. All open-source projects include proper attribution and license information.</p></div>';
+  
+  for(const [catKey, catInfo] of Object.entries(categories)){
+    const catResources = resources.filter(r => r.category === catKey);
+    if(catResources.length === 0) continue;
+    
+    html += `
+      <div style="margin-bottom:24px">
+        <h3 style="color:${catInfo.color};font-size:16px;margin-bottom:12px">${catInfo.title}</h3>
+        <div style="display:grid;gap:12px">
+          ${catResources.map(r => `
+            <div class="resource-card" onclick="window.open('${r.url || '#'}', '_blank')">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+                <div style="font-weight:600;font-size:14px;color:#fff">${escapeHtml(r.title)}</div>
+                ${r.license ? `<div style="background:rgba(0,0,0,0.3);padding:3px 8px;border-radius:4px;font-size:10px;color:var(--muted)">${r.license}</div>` : ''}
+              </div>
+              <div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:8px">
+                ${escapeHtml(r.description)}
+              </div>
+              ${r.provider ? `<div style="font-size:11px;color:var(--accent);margin-bottom:6px">📍 ${escapeHtml(r.provider)}</div>` : ''}
+              <div>
+                ${r.tags ? r.tags.map(tag => `<span class="resource-tag">${tag}</span>`).join('') : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  html += `
+    <div style="margin-top:32px;padding:16px;background:rgba(96,165,250,0.08);border-radius:10px;border:1px solid rgba(96,165,250,0.2)">
+      <h4 style="color:#60a5fa;margin:0 0 8px 0;font-size:14px">📌 Attribution Notice</h4>
+      <p style="font-size:12px;color:var(--muted);line-height:1.6;margin:0">
+        All GitHub repositories and resources are used with respect to their open-source licenses. We've adapted patterns and features from these projects to benefit planetary stewards while maintaining proper attribution. No proprietary code has been replicated. All links direct to original sources.
+      </p>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+async function renderProgressTracker(){
+  const sections = await getAllData(STORES.sections);
+  const quests = await getAllData(STORES.quests);
+  const party = await getAllData(STORES.party);
+  
+  const totalSectionPoints = sections.reduce((sum, s) => sum + s.points, 0);
+  const completedQuests = quests.filter(q => q.status === 'completed');
+  const totalQuestRewards = completedQuests.reduce((sum, q) => sum + q.reward, 0);
+  const partyPoints = party.reduce((sum, m) => sum + m.points, 0);
+  
+  const questsByCategory = {};
+  for(const quest of quests){
+    const cat = quest.category || 'other';
+    if(!questsByCategory[cat]) questsByCategory[cat] = [];
+    questsByCategory[cat].push(quest);
+  }
+  
+  const container = document.getElementById('progressContainer');
+  container.innerHTML = `
+    <div style="margin-bottom:20px">
+      <h2 style="color:var(--gold);margin-bottom:8px">📊 Your Progress Dashboard</h2>
+      <p style="color:var(--muted);font-size:14px">Track your journey as a planetary steward across all domains.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px">
+      <div style="padding:16px;background:rgba(0,230,200,0.08);border-radius:10px;border:1px solid rgba(0,230,200,0.2)">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Section Points</div>
+        <div style="font-size:32px;color:var(--accent);font-weight:600">${totalSectionPoints}</div>
+      </div>
+      
+      <div style="padding:16px;background:rgba(255,210,77,0.08);border-radius:10px;border:1px solid rgba(255,210,77,0.2)">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Quest Rewards</div>
+        <div style="font-size:32px;color:var(--gold);font-weight:600">${totalQuestRewards}</div>
+      </div>
+      
+      <div style="padding:16px;background:rgba(74,222,128,0.08);border-radius:10px;border:1px solid rgba(74,222,128,0.2)">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Quests Completed</div>
+        <div style="font-size:32px;color:var(--quest-active);font-weight:600">${completedQuests.length}</div>
+      </div>
+      
+      <div style="padding:16px;background:rgba(139,92,246,0.08);border-radius:10px;border:1px solid rgba(139,92,246,0.2)">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Party Total</div>
+        <div style="font-size:32px;color:#8b5cf6;font-weight:600">${partyPoints}</div>
+      </div>
+    </div>
+    
+    <div style="margin-bottom:24px">
+      <h3 style="color:var(--gold);font-size:16px;margin-bottom:12px">🎯 Quest Progress by Domain</h3>
+      ${Object.entries(questsByCategory).map(([cat, questList]) => {
+        const completed = questList.filter(q => q.status === 'completed').length;
+        const pct = Math.round((completed / questList.length) * 100);
+        return `
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:13px;text-transform:capitalize;color:#fff">${cat}</span>
+              <span style="font-size:13px;color:var(--muted)">${completed}/${questList.length}</span>
+            </div>
+            <div class="progress-bar" style="height:8px">
+              <div class="progress-fill" style="width:${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+    
+    <div style="padding:16px;background:rgba(96,165,250,0.08);border-radius:10px;border:1px solid rgba(96,165,250,0.2)">
+      <h4 style="color:#60a5fa;margin:0 0 8px 0;font-size:14px">💡 Next Steps</h4>
+      <ul style="font-size:13px;color:var(--muted);line-height:1.8;margin:0;padding-left:20px">
+        <li>Browse 100 planetary quests in the sidebar</li>
+        <li>Expand field guide sections to read deep content</li>
+        <li>Form a party to tackle cooperative challenges</li>
+        <li>Explore learning resources in the Resources tab</li>
+        <li>Share your progress and inspire others</li>
+      </ul>
+    </div>
+  `;
+}
+
+function showResourceLibrary(){
+  switchMainTab('resources');
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    if(btn.textContent.includes('Learning Hub')) btn.classList.add('active');
+    else btn.classList.remove('active');
+  });
+}
+function calcProgress(section){
+  const threshold = section.level * 50;
+  return Math.min(100, Math.round((section.points / threshold) * 100));
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+function nl2br(str){
+  return str.replace(/\n\n/g, '<br/><br/>');
+}
+
+function truncate(str, len){
+  return str.length > len ? str.slice(0, len-1) + '…' : str;
+}
+
+function toast(msg, type='info'){
+  const colors = {
+    success: '#4ade80',
+    error: '#ef4444',
+    warning: '#fbbf24',
+    info: '#60a5fa'
+  };
+  
+  const div = document.createElement('div');
+  div.className = 'toast';
+  div.style.borderLeftColor = colors[type] || colors.info;
+  div.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="font-size:18px">${type==='success'?'✅':type==='error'?'❌':type==='warning'?'⚠️':'ℹ️'}</div>
+      <div style="flex:1;font-size:13px;line-height:1.4">${msg}</div>
+    </div>
+  `;
+  document.body.appendChild(div);
+  
+  setTimeout(()=>div.style.opacity='0', 3000);
+  setTimeout(()=>div.remove(), 3500);
+}
+
+// ========== Initialize ==========
+init();
+
+// Close modal on background click
+document.getElementById("questModal").addEventListener("click", (e)=>{
+  if(e.target.id === "questModal"){
+    closeQuestModal();
+  }
+});
+
+console.log(`
+🔥 Cocaptain Quest System Loaded
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Cooperative quest system
+✅ Party management
+✅ Progress tracking
+✅ Import/Export functionality
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Start your journey!
+`);
