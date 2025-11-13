@@ -1292,4 +1292,314 @@ function updateParallax(){
   
   if(layer1){
     layer1.style.transform = `translate(${mouseX * 20 + scrollY * 0.1}px, ${mouseY * 20 + scrollY * 0.2}px)`;
-    layer1.style.background = `radial-gradient(circle at ${50 + mouseX * 30}% ${50 + mouse
+    layer1.style.background = `radial-gradient(circle at ${50 + mouseX * 30}% ${50 + mouseY * 30}%, rgba(0,230,200,0.05), transparent)`;
+  }
+  
+  if(layer2){
+    layer2.style.transform = `translate(${mouseX * -15 + scrollY * 0.15}px, ${mouseY * -15 + scrollY * 0.25}px)`;
+    layer2.style.background = `radial-gradient(circle at ${50 - mouseX * 25}% ${50 - mouseY * 25}%, rgba(255,210,77,0.04), transparent)`;
+  }
+  
+  if(layer3){
+    layer3.style.transform = `translate(${mouseX * 10 + scrollY * 0.05}px, ${mouseY * 10 + scrollY * 0.1}px)`;
+    layer3.style.background = `radial-gradient(circle at ${50 + mouseX * 15}% ${50 + mouseY * 15}%, rgba(74,222,128,0.03), transparent)`;
+  }
+}
+
+// ========== 3D CARD ROTATION ==========
+const nodes = document.querySelectorAll('.node');
+
+nodes.forEach(node => {
+  node.addEventListener('mousemove', (e) => {
+    const rect = node.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const rotateX = (y - centerY) / 10;
+    const rotateY = (centerX - x) / 10;
+    
+    node.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-8px)`;
+  });
+  
+  node.addEventListener('mouseleave', () => {
+    node.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)';
+  });
+});
+
+// ========== COLLAPSIBLE LEADERBOARD ==========
+function toggleLeaderboard(){
+  const section = document.getElementById('leaderboardSection');
+  section.classList.toggle('expanded');
+}
+
+// ========== IndexedDB Setup ==========
+const DB_NAME = "CocaptainLeaderboardDB";
+const DB_VERSION = 1;
+const STORE_NAME = "leaderboard";
+let db;
+
+async function initDB(){
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    
+    request.onerror = () => reject("IndexedDB not available");
+    
+    request.onupgradeneeded = (event) => {
+      db = event.target.result;
+      if(!db.objectStoreNames.contains(STORE_NAME)){
+        const store = db.createObjectStore(STORE_NAME, {keyPath: "id", autoIncrement: true});
+        store.createIndex("points", "points", {unique: false});
+        store.createIndex("timestamp", "timestamp", {unique: false});
+      }
+    };
+    
+    request.onsuccess = (event) => {
+      db = event.target.result;
+      resolve(db);
+    };
+  });
+}
+
+async function addEntry(name, points, quests){
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    
+    const entry = {
+      name: name.trim(),
+      points: parseInt(points) || 0,
+      quests: parseInt(quests) || 0,
+      timestamp: Date.now()
+    };
+    
+    const request = store.add(entry);
+    
+    request.onsuccess = () => resolve(entry);
+    request.onerror = () => reject("Failed to add entry");
+  });
+}
+
+async function getAllEntries(){
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], "readonly");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.getAll();
+    
+    request.onsuccess = () => {
+      const entries = request.result;
+      entries.sort((a, b) => b.points - a.points);
+      resolve(entries);
+    };
+    
+    request.onerror = () => reject("Failed to get entries");
+  });
+}
+
+async function renderLeaderboard(){
+  try {
+    const entries = await getAllEntries();
+    const container = document.getElementById("leaderboardList");
+    
+    if(entries.length === 0){
+      container.innerHTML = `
+        <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;font-weight:600">
+          🌱 No entries yet. Be the first planetary steward on the board!
+        </div>
+      `;
+      return;
+    }
+    
+    const topEntries = entries.slice(0, 10);
+    
+    container.innerHTML = topEntries.map((entry, index) => {
+      const rank = index + 1;
+      let rankClass = 'rank-other';
+      let rankIcon = rank;
+      
+      if(rank === 1){
+        rankClass = 'rank-1';
+        rankIcon = '🥇';
+      } else if(rank === 2){
+        rankClass = 'rank-2';
+        rankIcon = '🥈';
+      } else if(rank === 3){
+        rankClass = 'rank-3';
+        rankIcon = '🥉';
+      }
+      
+      const daysAgo = Math.floor((Date.now() - entry.timestamp) / (1000 * 60 * 60 * 24));
+      const timeAgo = daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`;
+      
+      return `
+        <div class="leaderboard-entry">
+          <div class="rank-badge ${rankClass}">${rankIcon}</div>
+          <div class="player-info">
+            <div class="player-name">${escapeHtml(entry.name)}</div>
+            <div class="player-stats">${entry.quests} quests completed • ${timeAgo}</div>
+          </div>
+          <div class="player-points">${entry.points.toLocaleString()}</div>
+        </div>
+      `;
+    }).join('');
+    
+  } catch(error){
+    console.error("Error rendering leaderboard:", error);
+  }
+}
+
+function toggleAddForm(){
+  const form = document.getElementById("addEntryForm");
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function addLeaderboardEntry(){
+  const nameInput = document.getElementById("playerName");
+  const pointsInput = document.getElementById("playerPoints");
+  const questsInput = document.getElementById("questsCompleted");
+  
+  const name = nameInput.value.trim();
+  const points = parseInt(pointsInput.value) || 0;
+  const quests = parseInt(questsInput.value) || 0;
+  
+  if(!name){
+    alert("Please enter your name");
+    return;
+  }
+  
+  if(points < 0 || quests < 0){
+    alert("Points and quests must be positive numbers");
+    return;
+  }
+  
+  try {
+    await addEntry(name, points, quests);
+    
+    // Clear form
+    nameInput.value = '';
+    pointsInput.value = '';
+    questsInput.value = '';
+    
+    // Hide form
+    toggleAddForm();
+    
+    // Refresh leaderboard
+    await renderLeaderboard();
+    
+    // Show success message
+    showToast(`🎉 Added to leaderboard: ${name} with ${points} points!`);
+    
+  } catch(error){
+    console.error("Error adding entry:", error);
+    alert("Failed to add entry. Please try again.");
+  }
+}
+
+function showToast(message){
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:rgba(0,0,0,0.95);
+    color:#fff;
+    padding:16px 20px;
+    border-radius:8px;
+    border-left:3px solid var(--gold);
+    box-shadow:0 8px 32px rgba(0,0,0,0.6);
+    z-index:9999;
+    animation:slideIn 0.3s ease;
+    max-width:320px;
+    font-size:14px;
+    font-weight:600;
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s ease';
+  }, 3000);
+  
+  setTimeout(() => toast.remove(), 3500);
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ========== SCROLL REVEAL ANIMATIONS ==========
+const observerOptions = {
+  threshold: 0.1,
+  rootMargin: '0px 0px -50px 0px'
+};
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if(entry.isIntersecting){
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+    }
+  });
+}, observerOptions);
+
+// Apply initial state and observe all nodes
+nodes.forEach((node, index) => {
+  node.style.opacity = '0';
+  node.style.transform = 'translateY(30px)';
+  node.style.transition = `all 0.6s ease ${index * 0.05}s`;
+  observer.observe(node);
+});
+
+// Initialize on page load
+(async function(){
+  try {
+    await initDB();
+    await renderLeaderboard();
+    
+    // Initialize parallax
+    updateParallax();
+    
+    console.log(`
+🏆 ENHANCED MYCELIAL WEB LOADED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Parallax background active
+✅ 3D rotatable cards enabled
+✅ Collapsible leaderboard (click to expand)
+✅ IndexedDB initialized
+✅ Bold typography enhanced
+✅ Scroll reveal animations
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Hover over cards to experience 3D rotation
+Move your mouse to see parallax effects
+Scroll to reveal content progressively
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    `);
+  } catch(error){
+    console.error("Failed to initialize:", error);
+  }
+})();
+
+console.log(`
+🌐 MYCELIAL WEB — ENHANCED EDITION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ All content visible from start
+✅ 100+ planetary quests
+✅ Extensive learning resources
+✅ Zero button gates
+✅ Parallax backgrounds
+✅ 3D card interactions
+✅ Bold code descriptors
+✅ Collapsible leaderboard
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Scroll freely. Connect deeply. Act boldly.
+`);
+</script>
+
+</body>
+</html>
+</artifact>
