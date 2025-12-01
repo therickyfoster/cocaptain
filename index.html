@@ -1,0 +1,433 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Flame, Award, Zap, Star, TrendingUp, Target, Users, BookOpen, Leaf, Code, DollarSign, Brain, Scale, Cpu, Trophy, ChevronDown, ChevronUp, Plus, Check, Lock, Sparkles, Crown, Medal } from 'lucide-react';
+
+const CocaptainGame = () => {
+  const [playerLevel, setPlayerLevel] = useState(1);
+  const [totalXP, setTotalXP] = useState(0);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [completedQuests, setCompletedQuests] = useState(new Set());
+  const [unlockedBadges, setUnlockedBadges] = useState(new Set());
+  const [activeTab, setActiveTab] = useState('quests');
+  const [leaderboardExpanded, setLeaderboardExpanded] = useState(false);
+  const [selectedDomain, setSelectedDomain] = useState('all');
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const canvasRef = useRef(null);
+
+  // XP needed for each level (exponential curve)
+  const getXPForLevel = (level) => Math.floor(100 * Math.pow(1.5, level - 1));
+  const xpNeeded = getXPForLevel(playerLevel + 1);
+  const xpProgress = (totalXP % xpNeeded) / xpNeeded * 100;
+
+  // Badge system
+  const badges = [
+    { id: 'first-quest', name: 'First Steps', icon: '🌱', requirement: 'Complete your first quest', unlocked: completedQuests.size >= 1 },
+    { id: 'streak-3', name: 'Momentum', icon: '🔥', requirement: '3-day streak', unlocked: currentStreak >= 3 },
+    { id: 'streak-7', name: 'Dedicated', icon: '⚡', requirement: '7-day streak', unlocked: currentStreak >= 7 },
+    { id: 'biosphere', name: 'Green Thumb', icon: '🌳', requirement: 'Complete 5 Biosphere quests', unlocked: false },
+    { id: 'sociosphere', name: 'Community Builder', icon: '👥', requirement: 'Complete 5 Sociosphere quests', unlocked: false },
+    { id: 'level-5', name: 'Rising Star', icon: '⭐', requirement: 'Reach Level 5', unlocked: playerLevel >= 5 },
+    { id: 'level-10', name: 'Master Steward', icon: '👑', requirement: 'Reach Level 10', unlocked: playerLevel >= 10 },
+    { id: 'completionist', name: 'Completionist', icon: '💯', requirement: 'Complete 25 quests', unlocked: completedQuests.size >= 25 },
+  ];
+
+  // Quest domains with colors and icons
+  const domains = {
+    biosphere: { name: 'Biosphere', icon: Leaf, color: '#4ade80', emoji: '🌍' },
+    atmosphere: { name: 'Atmosphere', icon: Zap, color: '#60a5fa', emoji: '🌊' },
+    hydrosphere: { name: 'Hydrosphere', icon: Zap, color: '#06b6d4', emoji: '💧' },
+    sociosphere: { name: 'Sociosphere', icon: Users, color: '#f59e0b', emoji: '👥' },
+    technosphere: { name: 'Technosphere', icon: Cpu, color: '#8b5cf6', emoji: '💻' },
+    econosphere: { name: 'Econosphere', icon: DollarSign, color: '#fbbf24', emoji: '💰' },
+    psyche: { name: 'Psyche', icon: Brain, color: '#ec4899', emoji: '🧠' },
+    governance: { name: 'Governance', icon: Scale, color: '#6366f1', emoji: '⚖️' },
+  };
+
+  // Enhanced quest system
+  const quests = [
+    // Biosphere
+    { id: 'plant-tree', domain: 'biosphere', title: '🌳 Plant a Food Tree', xp: 100, difficulty: 'medium', description: 'Plant and document one tree that yields carbon capture, shade, and food', impact: '~50 lbs CO2/year' },
+    { id: 'microhabitat', domain: 'biosphere', title: '🐝 Restore Microhabitat', xp: 75, difficulty: 'easy', description: 'Create a birdbath, moss patch, or pollinator garden', impact: 'Supports dozens of species' },
+    { id: 'seed-exchange', domain: 'biosphere', title: '🌱 Seed Exchange', xp: 80, difficulty: 'easy', description: 'Share heritage seeds with 3 neighbors', impact: 'Builds food sovereignty' },
+    { id: 'composting', domain: 'biosphere', title: '♻️ Begin Composting', xp: 60, difficulty: 'easy', description: 'Start and maintain a compost system for 60 days', impact: 'Diverts 30% waste from landfills' },
+    { id: 'rainwater', domain: 'biosphere', title: '💧 Capture Rainwater', xp: 90, difficulty: 'medium', description: 'Install 50+ gallon rainwater catchment system', impact: 'Reduces municipal water demand' },
+    
+    // Atmosphere
+    { id: 'transit-week', domain: 'atmosphere', title: '🚴 Active Transit Week', xp: 70, difficulty: 'medium', description: 'Replace car trips with active transit for 7 days', impact: '~50 lbs CO2 saved' },
+    { id: 'led-conversion', domain: 'atmosphere', title: '💡 LED Conversion', xp: 60, difficulty: 'easy', description: 'Replace all home bulbs with LEDs', impact: '~140 lbs CO2/year' },
+    { id: 'renewable-energy', domain: 'atmosphere', title: '☀️ Renewable Switch', xp: 100, difficulty: 'hard', description: 'Switch to renewable energy provider', impact: '7,000+ lbs CO2/year' },
+    
+    // Hydrosphere
+    { id: 'no-synthetic', domain: 'hydrosphere', title: '🚫 Stop Synthetic Fertilizer', xp: 70, difficulty: 'medium', description: 'Switch to organic alternatives for 6 months', impact: 'Prevents nitrogen runoff' },
+    { id: 'shoreline-cleanup', domain: 'hydrosphere', title: '🏖️ Shoreline Cleanup', xp: 75, difficulty: 'medium', description: 'Clean 100m of shoreline or riverbank', impact: 'Removes microplastic sources' },
+    
+    // Sociosphere
+    { id: 'know-neighbors', domain: 'sociosphere', title: '👋 Know Neighbors', xp: 40, difficulty: 'easy', description: 'Learn 5 neighbors names this month', impact: 'Builds community resilience' },
+    { id: 'repair-cafe', domain: 'sociosphere', title: '🔧 Repair Café', xp: 100, difficulty: 'hard', description: 'Organize community repair event', impact: 'Extends product lifespans' },
+    { id: 'community-meals', domain: 'sociosphere', title: '🍽️ Community Meals', xp: 60, difficulty: 'medium', description: 'Participate in 4 community meals', impact: 'Strengthens social bonds' },
+    
+    // Technosphere
+    { id: 'digital-declutter', domain: 'technosphere', title: '🗑️ Digital Declutter', xp: 50, difficulty: 'easy', description: 'Delete 10GB of unused data', impact: '~140 lbs CO2 over lifetime' },
+    { id: 'open-source', domain: 'technosphere', title: '💻 Open Source Contribution', xp: 100, difficulty: 'hard', description: 'Publish code/data with open license', impact: 'Multiplies through reuse' },
+    { id: 'repurpose-hardware', domain: 'technosphere', title: '♻️ Repurpose Hardware', xp: 65, difficulty: 'medium', description: 'Give new life to 2 old devices', impact: 'Prevents e-waste' },
+    
+    // Econosphere
+    { id: 'ethical-banking', domain: 'econosphere', title: '🏦 Ethical Banking', xp: 85, difficulty: 'medium', description: 'Switch to ethical bank or credit union', impact: 'Redirects capital' },
+    { id: 'support-bcorp', domain: 'econosphere', title: '🤝 Support B-Corps', xp: 70, difficulty: 'easy', description: 'Make 5 purchases from B-Corps', impact: 'Supports stakeholder capitalism' },
+    { id: 'nature-tithe', domain: 'econosphere', title: '🌱 Nature Tithe', xp: 120, difficulty: 'hard', description: 'Commit 1% income to restoration', impact: 'Funds long-term projects' },
+    { id: 'track-consumption', domain: 'econosphere', title: '📊 Track Consumption', xp: 55, difficulty: 'easy', description: 'Log all purchases for 30 days', impact: 'Reduces 15-20% through awareness' },
+    
+    // Psyche
+    { id: 'outdoor-meditation', domain: 'psyche', title: '🧘 Outdoor Meditation', xp: 60, difficulty: 'easy', description: 'Meditate outdoors daily for 14 days', impact: 'Strengthens biophilia' },
+    { id: 'indigenous-reading', domain: 'psyche', title: '📖 Indigenous Philosophy', xp: 80, difficulty: 'medium', description: 'Read 2 books on indigenous ecology', impact: 'Expands worldview' },
+    { id: 'teach-child', domain: 'psyche', title: '👶 Teach Child to Grow', xp: 85, difficulty: 'medium', description: 'Guide child through seed to harvest', impact: 'Builds food literacy' },
+    { id: 'documentary-night', domain: 'psyche', title: '🎬 Documentary Night', xp: 80, difficulty: 'medium', description: 'Host 3 environmental screenings', impact: 'Inspires community action' },
+    { id: 'workplace-sustainability', domain: 'psyche', title: '💼 Workplace Sustainability', xp: 110, difficulty: 'hard', description: 'Implement sustainability metric at work', impact: 'Scales organizational change' },
+    
+    // Governance
+    { id: 'vote-local', domain: 'governance', title: '🗳️ Vote Locally', xp: 100, difficulty: 'medium', description: 'Vote in next local election', impact: 'Shapes local policy' },
+    { id: 'council-meeting', domain: 'governance', title: '🏛️ Council Meeting', xp: 85, difficulty: 'medium', description: 'Attend and participate in council meeting', impact: 'Democracy through action' },
+    { id: 'citizen-science', domain: 'governance', title: '🔬 Citizen Science', xp: 85, difficulty: 'medium', description: 'Complete 3 citizen science projects', impact: 'Democratizes knowledge' },
+    { id: 'ecological-humility', domain: 'governance', title: '🌍 Ecological Humility', xp: 70, difficulty: 'easy', description: 'Practice humble discourse for 30 days', impact: 'Builds coalition' },
+    { id: 'form-collective', domain: 'governance', title: '👥 Form Collective', xp: 120, difficulty: 'hard', description: 'Create aligned group of 5+ stewards', impact: 'Collective leverage' },
+    { id: 'document-failure', domain: 'governance', title: '💔 Document Failure', xp: 95, difficulty: 'medium', description: 'Share 3 failure stories with lessons', impact: 'Accelerates learning' },
+  ];
+
+  // Complete quest handler
+  const completeQuest = (questId) => {
+    if (completedQuests.has(questId)) return;
+    
+    const quest = quests.find(q => q.id === questId);
+    const newCompleted = new Set(completedQuests);
+    newCompleted.add(questId);
+    setCompletedQuests(newCompleted);
+    
+    const newXP = totalXP + quest.xp;
+    setTotalXP(newXP);
+    
+    // Check for level up
+    const newLevel = Math.floor(Math.log(newXP / 100 + 1) / Math.log(1.5)) + 1;
+    if (newLevel > playerLevel) {
+      setPlayerLevel(newLevel);
+      setShowLevelUp(true);
+      setTimeout(() => setShowLevelUp(false), 3000);
+    }
+    
+    // Update streak (simplified)
+    setCurrentStreak(prev => prev + 1);
+  };
+
+  // Particle effect on canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    const particles = [];
+    for (let i = 0; i < 50; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        size: Math.random() * 2 + 1,
+      });
+    }
+    
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(0, 230, 200, 0.1)';
+      
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      
+      requestAnimationFrame(animate);
+    };
+    
+    animate();
+  }, []);
+
+  const filteredQuests = selectedDomain === 'all' 
+    ? quests 
+    : quests.filter(q => q.domain === selectedDomain);
+
+  const getDifficultyColor = (diff) => {
+    if (diff === 'easy') return 'bg-green-500/20 text-green-400 border-green-500/30';
+    if (diff === 'medium') return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    return 'bg-red-500/20 text-red-400 border-red-500/30';
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100 relative overflow-hidden">
+      {/* Animated background canvas */}
+      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none opacity-30" />
+      
+      {/* Level Up Animation */}
+      {showLevelUp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-12 py-6 rounded-2xl text-4xl font-black animate-bounce shadow-2xl">
+            <Crown className="inline mr-3" size={48} />
+            LEVEL {playerLevel}!
+            <Sparkles className="inline ml-3" size={48} />
+          </div>
+        </div>
+      )}
+      
+      {/* Header */}
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/80 border-b border-cyan-500/20 shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Flame className="text-orange-500" size={32} />
+              <div>
+                <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                  COCAPTAIN QUEST
+                </h1>
+                <p className="text-xs text-slate-400 font-bold">Planetary Restoration Protocol</p>
+              </div>
+            </div>
+            
+            {/* Player Stats */}
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <div className="flex items-center gap-2 text-yellow-400 font-black text-xl">
+                  <Star size={24} />
+                  Level {playerLevel}
+                </div>
+                <div className="text-xs text-slate-400 font-bold">{totalXP} Total XP</div>
+              </div>
+              
+              <div className="text-right">
+                <div className="flex items-center gap-2 text-orange-400 font-black text-xl">
+                  <Flame size={24} />
+                  {currentStreak} Day Streak
+                </div>
+                <div className="text-xs text-slate-400 font-bold">{completedQuests.size} Quests Complete</div>
+              </div>
+              
+              <div className="text-right">
+                <div className="flex items-center gap-2 text-purple-400 font-black text-xl">
+                  <Trophy size={24} />
+                  {unlockedBadges.size} Badges
+                </div>
+                <div className="text-xs text-slate-400 font-bold">{badges.filter(b => b.unlocked).length} Unlocked</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* XP Progress Bar */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-bold text-slate-300">Progress to Level {playerLevel + 1}</span>
+              <span className="text-sm font-bold text-cyan-400">{Math.floor(xpProgress)}%</span>
+            </div>
+            <div className="h-3 bg-slate-800 rounded-full overflow-hidden border border-cyan-500/30">
+              <div 
+                className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500 ease-out"
+                style={{ width: `${xpProgress}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-6 py-8 relative z-10">
+        {/* Navigation Tabs */}
+        <div className="flex gap-4 mb-8 border-b border-slate-800">
+          {['quests', 'badges', 'resources', 'guide'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-3 font-black text-sm uppercase tracking-wider transition-all ${
+                activeTab === tab
+                  ? 'text-cyan-400 border-b-4 border-cyan-400'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Quests Tab */}
+        {activeTab === 'quests' && (
+          <>
+            {/* Domain Filter */}
+            <div className="mb-6 flex gap-3 flex-wrap">
+              <button
+                onClick={() => setSelectedDomain('all')}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                  selectedDomain === 'all'
+                    ? 'bg-cyan-500 text-black'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                ALL QUESTS
+              </button>
+              {Object.entries(domains).map(([key, domain]) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedDomain(key)}
+                  className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${
+                    selectedDomain === key
+                      ? 'bg-cyan-500 text-black'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                  style={{
+                    borderLeft: selectedDomain === key ? `4px solid ${domain.color}` : 'none'
+                  }}
+                >
+                  {domain.emoji} {domain.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Quest Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredQuests.map(quest => {
+                const isCompleted = completedQuests.has(quest.id);
+                const domain = domains[quest.domain];
+                
+                return (
+                  <div
+                    key={quest.id}
+                    className={`bg-slate-900/50 backdrop-blur border rounded-xl p-6 transition-all hover:scale-105 hover:shadow-2xl ${
+                      isCompleted
+                        ? 'border-green-500/50 bg-green-500/5'
+                        : 'border-slate-800 hover:border-cyan-500/50'
+                    }`}
+                    style={{
+                      borderLeft: `4px solid ${domain.color}`
+                    }}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="font-black text-lg">{quest.title}</h3>
+                      {isCompleted && <Check className="text-green-500" size={24} />}
+                    </div>
+                    
+                    <p className="text-sm text-slate-400 mb-4">{quest.description}</p>
+                    
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getDifficultyColor(quest.difficulty)}`}>
+                        {quest.difficulty.toUpperCase()}
+                      </span>
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                        +{quest.xp} XP
+                      </span>
+                    </div>
+                    
+                    <div className="text-xs text-cyan-400 font-bold mb-4">
+                      Impact: {quest.impact}
+                    </div>
+                    
+                    {!isCompleted ? (
+                      <button
+                        onClick={() => completeQuest(quest.id)}
+                        className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-black font-black py-3 rounded-lg hover:from-cyan-400 hover:to-blue-400 transition-all"
+                      >
+                        COMPLETE QUEST
+                      </button>
+                    ) : (
+                      <div className="w-full bg-green-500/20 text-green-400 font-black py-3 rounded-lg text-center border border-green-500/30">
+                        ✓ COMPLETED
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Badges Tab */}
+        {activeTab === 'badges' && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {badges.map(badge => (
+              <div
+                key={badge.id}
+                className={`bg-slate-900/50 backdrop-blur border rounded-xl p-6 text-center transition-all ${
+                  badge.unlocked
+                    ? 'border-yellow-500/50 hover:scale-105'
+                    : 'border-slate-800 opacity-50'
+                }`}
+              >
+                <div className="text-6xl mb-3">{badge.unlocked ? badge.icon : <Lock size={48} className="mx-auto text-slate-600" />}</div>
+                <h3 className="font-black text-lg mb-2">{badge.name}</h3>
+                <p className="text-xs text-slate-400">{badge.requirement}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Resources Tab */}
+        {activeTab === 'resources' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-6">
+              <BookOpen className="text-cyan-400 mb-3" size={32} />
+              <h3 className="font-black text-xl mb-3">Learning Resources</h3>
+              <p className="text-slate-400 mb-4">Access curated guides, courses, and documentation for planetary restoration.</p>
+              <button className="bg-cyan-500 text-black font-bold px-6 py-2 rounded-lg">
+                Explore Resources
+              </button>
+            </div>
+            
+            <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-6">
+              <Code className="text-purple-400 mb-3" size={32} />
+              <h3 className="font-black text-xl mb-3">GitHub Projects</h3>
+              <p className="text-slate-400 mb-4">Contribute to open-source climate tech and sustainability tools.</p>
+              <button className="bg-purple-500 text-black font-bold px-6 py-2 rounded-lg">
+                View Projects
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Guide Tab */}
+        {activeTab === 'guide' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-xl p-8">
+              <Target className="text-cyan-400 mb-4" size={40} />
+              <h2 className="font-black text-3xl mb-4">The Cocaptain Protocol</h2>
+              <p className="text-slate-300 leading-relaxed mb-4">
+                You are a planetary steward. Each quest completed compounds across time - carbon sequestration, community resilience, systemic change. This is not a game. This is training for the work ahead.
+              </p>
+              <p className="text-slate-300 leading-relaxed">
+                Start anywhere. Connect the nodes. Share your journey. Individual acts are seeds. Collective action is forest.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+                <h3 className="font-black text-xl mb-3">🎯 Mission</h3>
+                <p className="text-slate-400 text-sm">Complete quests across all 8 domains to build comprehensive stewardship capacity.</p>
+              </div>
+              
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+                <h3 className="font-black text-xl mb-3">⚡ Strategy</h3>
+                <p className="text-slate-400 text-sm">Leverage points amplify impact. Choose high-XP quests that create cascading change.</p>
+              </div>
+              
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+                <h3 className="font-black text-xl mb-3">🔥 Momentum</h3>
+                <p className="text-slate-400 text-sm">Maintain daily streaks. Consistency compounds. Small actions sustained > heroic bursts.</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default CocaptainGame;
